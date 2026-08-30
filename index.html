@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>서울 자치구 주간 아파트값 지도</title>
+<meta name="description" content="한국부동산원 주간아파트가격동향 기반 서울 25개 자치구 아파트 매매가격 변동률 지도">
+
+<!-- Google Analytics (GA4) — 측정 ID를 넣으면 활성화됩니다 -->
+<script>
+  // Google Analytics > 관리 > 데이터 스트림에서 확인 (G- 로 시작).
+  // 비워두면 GA를 아예 불러오지 않습니다.
+  window.GA_MEASUREMENT_ID = "";
+
+  (function () {
+    var id = window.GA_MEASUREMENT_ID;
+    if (!/^G-[A-Z0-9]{6,}$/.test(id || "")) return;                    // 미설정 시 비활성
+    if (location.protocol === "file:" ||
+        /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) return;  // 로컬 확인용 접속은 집계 제외
+    var s = document.createElement("script");
+    s.async = true;
+    s.src = "https://www.googletagmanager.com/gtag/js?id=" + id;
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { window.dataLayer.push(arguments); };
+    gtag("js", new Date());
+    gtag("config", id);
+  })();
+</script>
+<style>
+  :root {
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --hairline: #e1e0d9;
+    --border: rgba(11, 11, 11, 0.10);
+    --up-strong: #a52a24;
+    --down-strong: #184f95;
+    --series-gu: #2a78d6;
+    --series-seoul: #898781;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 28px 20px 48px; }
+
+  header h1 { font-size: 26px; font-weight: 800; margin: 0 0 4px; letter-spacing: -0.02em; }
+  header .sub { color: var(--ink-2); font-size: 13.5px; margin: 0; }
+  header .sub b { font-weight: 700; color: var(--ink); }
+
+  .sample-note {
+    margin: 14px 0 0; padding: 10px 14px; border-radius: 10px;
+    background: #fdf3e2; border: 1px solid #f0d9ac; color: #6b4e12; font-size: 13px;
+  }
+  .sample-note code { background: rgba(11,11,11,.06); padding: 1px 5px; border-radius: 4px; }
+
+  .topbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0 12px; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px 16px; min-width: 130px;
+  }
+  .stat .k { font-size: 11.5px; color: var(--muted); margin-bottom: 2px; }
+  .stat .v { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+  .chips { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .chip {
+    font-size: 12.5px; color: var(--ink-2); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px;
+  }
+  .chip b { color: var(--ink); }
+  .chip .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 18px; position: relative;
+  }
+  .card + .card { margin-top: 14px; }
+  .card-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  .card-title { font-size: 15px; font-weight: 700; }
+  .card-title .hint { font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 8px; }
+
+  .legend { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+  .legend-scale { display: flex; flex-direction: column; }
+  .legend-cells { display: flex; }
+  .legend-cells span { width: 34px; height: 12px; }
+  .legend-cells span:first-child { border-radius: 3px 0 0 3px; }
+  .legend-cells span:last-child { border-radius: 0 3px 3px 0; }
+  .legend-ticks { display: flex; font-size: 10px; color: var(--muted); }
+  .legend-ticks span { width: 34px; text-align: right; transform: translateX(8px); }
+  .legend-label { font-size: 11px; color: var(--ink-2); margin-bottom: 3px; }
+  .legend-missing { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-2); padding-bottom: 14px; }
+  .legend-missing svg { border-radius: 3px; border: 1px solid var(--hairline); }
+
+  .view-toggle, .range-toggle { display: flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+  .view-toggle button, .range-toggle button {
+    border: 0; background: transparent; padding: 6px 14px; font-size: 12.5px; cursor: pointer;
+    color: var(--ink-2); font-family: inherit;
+  }
+  .view-toggle button[aria-pressed="true"], .range-toggle button[aria-pressed="true"] {
+    background: var(--ink); color: #fff; font-weight: 600;
+  }
+
+  #map-box { margin-top: 8px; }
+  #map { width: 100%; height: auto; display: block; }
+  .gu {
+    stroke: var(--surface); stroke-width: 1.6; cursor: pointer;
+    transition: filter .1s ease;
+  }
+  .gu:hover, .gu:focus-visible { filter: brightness(0.93); outline: none; stroke: var(--ink); stroke-width: 1.2; }
+  .gu.selected { stroke: var(--ink); stroke-width: 2; }
+  .gu-label { pointer-events: none; text-anchor: middle; }
+  .gu-label .nm { font-size: 13px; font-weight: 700; }
+  .gu-label .val { font-size: 11px; font-weight: 500; }
+
+  #tooltip {
+    position: fixed; z-index: 10; pointer-events: none; display: none;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(11,11,11,.12); padding: 10px 12px; min-width: 190px; font-size: 12.5px;
+  }
+  #tooltip .tt-name { font-weight: 700; font-size: 13.5px; margin-bottom: 2px; }
+  #tooltip .tt-now { font-size: 17px; font-weight: 800; margin-bottom: 6px; }
+  #tooltip table { border-collapse: collapse; width: 100%; }
+  #tooltip td { padding: 1.5px 0; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  #tooltip td:last-child { text-align: right; color: var(--ink); }
+  #tooltip .tt-bar { height: 4px; border-radius: 2px; margin-left: 8px; display: inline-block; vertical-align: middle; }
+  #tooltip .tt-spark { margin: 4px 0 6px; }
+  #tooltip .tt-spark-cap { font-size: 10.5px; color: var(--muted); margin-bottom: 2px; }
+
+  #table-view { display: none; margin-top: 8px; overflow-x: auto; }
+  #table-view table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  #table-view th {
+    text-align: right; font-weight: 600; color: var(--muted); font-size: 11.5px;
+    border-bottom: 1px solid var(--hairline); padding: 8px 10px;
+  }
+  #table-view th:first-child, #table-view td:first-child { text-align: left; }
+  #table-view td { padding: 7px 10px; border-bottom: 1px solid var(--hairline); text-align: right; font-variant-numeric: tabular-nums; }
+  #table-view td.swatch-cell { text-align: left; white-space: nowrap; }
+  #table-view .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; border: 1px solid rgba(11,11,11,.08); }
+
+  #chart-box { margin-top: 10px; position: relative; }
+  #chart { width: 100%; height: auto; display: block; }
+  #chart-tip {
+    position: fixed; z-index: 10; pointer-events: none; display: none;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+    box-shadow: 0 6px 20px rgba(11,11,11,.12); padding: 8px 11px; font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  #chart-tip .w { color: var(--muted); font-size: 11px; margin-bottom: 3px; }
+  #chart-tip .r { display: flex; gap: 10px; justify-content: space-between; }
+  #chart-tip .r .lg { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); }
+  #chart-tip .r .lg i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .chart-legend { display: flex; gap: 14px; font-size: 12px; color: var(--ink-2); align-items: center; }
+  .chart-legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: 2px; }
+
+  footer { margin-top: 14px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>서울 자치구 주간 아파트값 지도</h1>
+    <p class="sub" id="subtitle"></p>
+  </header>
+  <div id="sample-banner"></div>
+
+  <div class="topbar">
+    <div class="stat">
+      <div class="k">서울 전체 (전주 대비)</div>
+      <div class="v" id="seoul-stat">–</div>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="legend">
+        <div class="legend-scale">
+          <div class="legend-label">주간 매매가격 변동률 (%)</div>
+          <div class="legend-cells" id="legend-cells"></div>
+          <div class="legend-ticks" id="legend-ticks"></div>
+        </div>
+        <div class="legend-missing">
+          <svg width="20" height="12"><rect width="20" height="12" fill="url(#hatch-mini)"></rect></svg>
+          자료 없음
+        </div>
+      </div>
+      <div class="view-toggle" role="group" aria-label="보기 전환">
+        <button type="button" id="btn-map" aria-pressed="true">지도</button>
+        <button type="button" id="btn-table" aria-pressed="false">표</button>
+      </div>
+    </div>
+
+    <div id="map-box"><svg id="map" role="img" aria-label="서울 자치구별 주간 아파트 매매가격 변동률 지도"></svg></div>
+    <div id="table-view"></div>
+  </div>
+
+  <div class="card" id="chart-card">
+    <div class="card-head">
+      <div class="card-title">매매가격지수 추이 <span class="hint">지도에서 자치구를 클릭하면 바뀝니다 · 구간 시작 = 100 재기준</span></div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <div class="chart-legend" id="chart-legend"></div>
+        <div class="range-toggle" role="group" aria-label="기간 선택" id="range-toggle">
+          <button type="button" data-range="1y">1년</button>
+          <button type="button" data-range="2024" aria-pressed="true">2024~</button>
+          <button type="button" data-range="all">전체</button>
+        </div>
+      </div>
+    </div>
+    <div id="chart-box"><svg id="chart" role="img" aria-label="매매가격지수 시계열 차트"></svg></div>
+  </div>
+
+  <footer id="footer"></footer>
+</div>
+
+<div id="tooltip"></div>
+<div id="chart-tip"></div>
+
+<script src="data/seoul_geo.js"></script>
+<script src="data/latest.js"></script>
+<script>
+(function () {
+  const D = window.APT_DATA, GEO = window.SEOUL_GEO;
+  const NEUTRAL = "#f0efec";
+  // 상승(빨강)/하락(파랑) diverging — 팔레트 검증기 통과 ramp
+  const BINS = [
+    { lt: -0.40, fill: "#184f95", ink: "#ffffff", label: "-0.40 이하" },
+    { lt: -0.25, fill: "#2a78d6", ink: "#ffffff", label: "-0.40 ~ -0.25" },
+    { lt: -0.10, fill: "#6da7ec", ink: "#0b0b0b", label: "-0.25 ~ -0.10" },
+    { lt: -0.02, fill: "#b7d3f6", ink: "#0b0b0b", label: "-0.10 ~ -0.02" },
+    { lt:  0.02, fill: NEUTRAL,   ink: "#0b0b0b", label: "보합" },
+    { lt:  0.10, fill: "#f6c3bd", ink: "#0b0b0b", label: "+0.02 ~ +0.10" },
+    { lt:  0.25, fill: "#ee8f85", ink: "#0b0b0b", label: "+0.10 ~ +0.25" },
+    { lt:  0.40, fill: "#dd4a41", ink: "#ffffff", label: "+0.25 ~ +0.40" },
+    { lt: Infinity, fill: "#a52a24", ink: "#ffffff", label: "+0.40 이상" },
+  ];
+  const binOf = v => v == null ? null : BINS.find(b => v < b.lt) || BINS[BINS.length - 1];
+  const fmt = v => v == null ? "–" : (v > 0 ? "+" : "") + v.toFixed(2);
+  // GA가 설정돼 있을 때만 이벤트 전송 (미설정 시 무동작)
+  const track = (name, params) => { if (window.gtag) window.gtag("event", name, params || {}); };
+  const NW = D.weeks.length;
+  const latest = g => { const s = D.regions[g]; return s ? s[NW - 1] : null; };
+  const weekNow = D.weeks[NW - 1];
+
+  // 지수 시계열 (regionsIndex가 없으면 변동률에서 누적 계산)
+  function indexSeries(g) { // g === null 이면 서울 전체
+    const idx = g ? (D.regionsIndex || {})[g] : D.seoulIndex;
+    if (idx) return idx;
+    const pct = g ? D.regions[g] : D.seoul;
+    if (!pct) return null;
+    let acc = 100; return pct.map(p => (p == null ? null : (acc *= 1 + p / 100)));
+  }
+
+  // ---------- 헤더 ----------
+  document.getElementById("subtitle").innerHTML =
+    `<b>${weekNow}</b> 주 기준 · 전주 대비 매매가격지수 변동률 · 출처: ${D.source}`;
+  const seoulNow = D.seoul ? D.seoul[NW - 1] : null;
+  const stat = document.getElementById("seoul-stat");
+  stat.textContent = fmt(seoulNow) + "%";
+  stat.style.color = seoulNow > 0.02 ? "var(--up-strong)" : seoulNow < -0.02 ? "var(--down-strong)" : "var(--ink)";
+
+  if (D.isSample) {
+    document.getElementById("sample-banner").innerHTML =
+      `<div class="sample-note">지금 보이는 값은 <b>샘플 데이터</b>입니다. R-ONE 인증키를 <code>.env</code>에 넣고
+       <code>python scripts/fetch_data.py</code> 를 실행하면 실제 최신 주간 데이터로 바뀝니다.</div>`;
+  }
+
+  // 요약 칩
+  const gus = Object.keys(D.regions);
+  const allGus = GEO.features.map(f => f.properties.SIG_KOR_NM);
+  const up = gus.filter(g => latest(g) > 0.02).length;
+  const down = gus.filter(g => latest(g) < -0.02).length;
+  const flat = gus.filter(g => { const v = latest(g); return v != null && v >= -0.02 && v <= 0.02; }).length;
+  const none = allGus.filter(g => latest(g) == null).length;
+  document.getElementById("chips").innerHTML = [
+    `<span class="chip"><span class="dot" style="background:#dd4a41"></span>상승 <b>${up}</b></span>`,
+    `<span class="chip"><span class="dot" style="background:#c3c2b7"></span>보합 <b>${flat}</b></span>`,
+    `<span class="chip"><span class="dot" style="background:#2a78d6"></span>하락 <b>${down}</b></span>`,
+    none ? `<span class="chip">자료 없음 <b>${none}</b></span>` : "",
+  ].join("");
+
+  // ---------- 범례 ----------
+  document.getElementById("legend-cells").innerHTML =
+    BINS.map(b => `<span style="background:${b.fill}" title="${b.label}"></span>`).join("");
+  document.getElementById("legend-ticks").innerHTML =
+    ["-0.40", "-0.25", "-0.10", "-0.02", "+0.02", "+0.10", "+0.25", "+0.40"]
+      .map(t => `<span>${t}</span>`).join("");
+
+  // ---------- 지도 ----------
+  const svg = document.getElementById("map");
+  const NS = "http://www.w3.org/2000/svg";
+
+  let minLon = 180, maxLon = -180, minLat = 90, maxLat = -90;
+  GEO.features.forEach(f => f.geometry.coordinates.forEach(ring => ring.forEach(([x, y]) => {
+    if (x < minLon) minLon = x; if (x > maxLon) maxLon = x;
+    if (y < minLat) minLat = y; if (y > maxLat) maxLat = y;
+  })));
+  const midLat = (minLat + maxLat) / 2, cosL = Math.cos(midLat * Math.PI / 180);
+  const PAD = 26, W = 940;
+  const k = (W - PAD * 2) / ((maxLon - minLon) * cosL);
+  const H = Math.ceil((maxLat - minLat) * k + PAD * 2);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const px = lon => PAD + (lon - minLon) * cosL * k;
+  const py = lat => PAD + (maxLat - lat) * k;
+
+  svg.innerHTML = `<defs>
+    <pattern id="hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <rect width="7" height="7" fill="#f3f2ef"></rect>
+      <line x1="0" y1="0" x2="0" y2="7" stroke="#d8d7d0" stroke-width="2.2"></line>
+    </pattern>
+    <pattern id="hatch-mini" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="#f3f2ef"></rect>
+      <line x1="0" y1="0" x2="0" y2="6" stroke="#d8d7d0" stroke-width="2"></line>
+    </pattern>
+  </defs>`;
+
+  const gShapes = document.createElementNS(NS, "g");
+  const gLabels = document.createElementNS(NS, "g");
+  svg.appendChild(gShapes); svg.appendChild(gLabels);
+
+  const tooltip = document.getElementById("tooltip");
+
+  function centroid(ring) { // shoelace
+    let a = 0, cx = 0, cy = 0;
+    for (let i = 0; i < ring.length - 1; i++) {
+      const [x1, y1] = ring[i], [x2, y2] = ring[i + 1];
+      const c = x1 * y2 - x2 * y1;
+      a += c; cx += (x1 + x2) * c; cy += (y1 + y2) * c;
+    }
+    a /= 2;
+    return [cx / (6 * a), cy / (6 * a)];
+  }
+
+  const NUDGE = { "중구": [0, -2], "종로구": [8, 6], "성동구": [0, 3], "동대문구": [2, 3], "금천구": [0, -4] };
+
+  // 툴팁 스파크라인 (최근 52주 지수)
+  function sparkline(g) {
+    const s = indexSeries(g);
+    if (!s) return "";
+    const tail = s.slice(-52).filter(v => v != null);
+    if (tail.length < 2) return "";
+    const w = 160, h = 34, lo = Math.min(...tail), hi = Math.max(...tail), span = (hi - lo) || 1;
+    const pts = tail.map((v, i) =>
+      `${(i / (tail.length - 1) * w).toFixed(1)},${(h - 3 - (v - lo) / span * (h - 6)).toFixed(1)}`).join(" ");
+    const rising = tail[tail.length - 1] >= tail[0];
+    return `<div class="tt-spark"><div class="tt-spark-cap">최근 1년 지수 흐름</div>
+      <svg width="${w}" height="${h}"><polyline points="${pts}" fill="none"
+        stroke="${rising ? "#dd4a41" : "#2a78d6"}" stroke-width="1.8" stroke-linejoin="round"></polyline></svg></div>`;
+  }
+
+  const pathByGu = {};
+
+  GEO.features.forEach(f => {
+    const name = f.properties.SIG_KOR_NM;
+    const v = latest(name);
+    const bin = binOf(v);
+
+    const d = f.geometry.coordinates.map(ring =>
+      "M" + ring.map(([x, y]) => `${px(x).toFixed(1)},${py(y).toFixed(1)}`).join("L") + "Z"
+    ).join("");
+    const path = document.createElementNS(NS, "path");
+    path.setAttribute("d", d);
+    path.setAttribute("class", "gu");
+    path.setAttribute("fill", bin ? bin.fill : "url(#hatch)");
+    path.setAttribute("tabindex", "0");
+    path.setAttribute("role", "button");
+    path.setAttribute("aria-label", `${name} ${v == null ? "자료 없음" : fmt(v) + "%"} — 클릭하면 아래 차트에 표시`);
+    gShapes.appendChild(path);
+    pathByGu[name] = path;
+
+    const [cx0, cy0] = centroid(f.geometry.coordinates[0]);
+    const [nx, ny] = NUDGE[name] || [0, 0];
+    const cx = px(cx0) + nx, cy = py(cy0) + ny;
+    const ink = v == null ? "#898781" : bin.ink;
+    const short = name.length > 2 ? name.slice(0, -1) : name.slice(0, 1);
+    const label = document.createElementNS(NS, "text");
+    label.setAttribute("class", "gu-label");
+    label.setAttribute("x", cx); label.setAttribute("y", cy);
+    label.innerHTML =
+      `<tspan class="nm" x="${cx}" dy="0" fill="${ink}">${short}</tspan>` +
+      (v == null ? "" : `<tspan class="val" x="${cx}" dy="14" fill="${ink}">${fmt(v)}</tspan>`);
+    gLabels.appendChild(label);
+
+    const show = (evt) => {
+      const s = D.regions[name] || [];
+      const rows = D.weeks.slice(-8).map((w, i) => {
+        const val = s[NW - 8 + i];
+        const bw = val == null ? 0 : Math.min(Math.abs(val) / 0.5 * 40, 40);
+        const bc = val > 0.02 ? "#dd4a41" : val < -0.02 ? "#2a78d6" : "#c3c2b7";
+        return `<tr><td>${w}</td><td>${fmt(val)}<span class="tt-bar" style="width:${bw}px;background:${bc}"></span></td></tr>`;
+      }).join("");
+      tooltip.innerHTML =
+        `<div class="tt-name">${name}</div>
+         <div class="tt-now" style="color:${v > 0.02 ? "var(--up-strong)" : v < -0.02 ? "var(--down-strong)" : "var(--ink)"}">${v == null ? "자료 없음" : fmt(v) + "%"}</div>
+         ${sparkline(name)}
+         <table>${rows}</table>`;
+      tooltip.style.display = "block";
+      move(evt);
+    };
+    const move = (evt) => {
+      const m = 14, tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+      let x = evt.clientX + m, y = evt.clientY + m;
+      if (x + tw > innerWidth - 8) x = evt.clientX - tw - m;
+      if (y + th > innerHeight - 8) y = evt.clientY - th - m;
+      tooltip.style.left = x + "px"; tooltip.style.top = y + "px";
+    };
+    const hide = () => { tooltip.style.display = "none"; };
+    path.addEventListener("mouseenter", show);
+    path.addEventListener("mousemove", move);
+    path.addEventListener("mouseleave", hide);
+    path.addEventListener("focus", () => {
+      const r = path.getBoundingClientRect();
+      show({ clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 });
+    });
+    path.addEventListener("blur", hide);
+    path.addEventListener("click", () => selectGu(name));
+    path.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectGu(name); } });
+  });
+
+  // ---------- 표 보기 ----------
+  const tableBox = document.getElementById("table-view");
+  const rowsSorted = allGus
+    .map(g => ({ g, v: latest(g), prev: (D.regions[g] || [])[NW - 2] ?? null }))
+    .sort((a, b) => (b.v ?? -999) - (a.v ?? -999));
+  tableBox.innerHTML = `<table>
+    <thead><tr><th>자치구</th><th>${weekNow} (%)</th><th>전주 (%)</th><th>전주 대비</th></tr></thead>
+    <tbody>${rowsSorted.map(r => {
+      const bin = binOf(r.v);
+      const delta = (r.v == null || r.prev == null) ? null : +(r.v - r.prev).toFixed(2);
+      const arrow = delta == null ? "–" : delta > 0 ? "▲ +" + delta.toFixed(2) : delta < 0 ? "▼ " + Math.abs(delta).toFixed(2) : "―";
+      return `<tr>
+        <td class="swatch-cell"><span class="sw" style="background:${bin ? bin.fill : "#eceae5"}"></span>${r.g}</td>
+        <td>${fmt(r.v)}</td><td>${fmt(r.prev)}</td><td>${arrow}</td></tr>`;
+    }).join("")}</tbody></table>`;
+
+  const btnMap = document.getElementById("btn-map"), btnTable = document.getElementById("btn-table");
+  function setView(map) {
+    document.getElementById("map-box").style.display = map ? "" : "none";
+    tableBox.style.display = map ? "none" : "block";
+    btnMap.setAttribute("aria-pressed", String(map));
+    btnTable.setAttribute("aria-pressed", String(!map));
+  }
+  btnMap.onclick = () => { setView(true); track("change_view", { view: "map" }); };
+  btnTable.onclick = () => { setView(false); track("change_view", { view: "table" }); };
+
+  // ---------- 시계열 차트 ----------
+  const chart = document.getElementById("chart");
+  const chartTip = document.getElementById("chart-tip");
+  let selGu = null;          // null = 서울 전체만
+  let range = "2024";
+
+  function rangeStartIdx() {
+    if (range === "all") return 0;
+    let cut;
+    if (range === "1y") {
+      const dt = new Date(D.weeks[NW - 1]); dt.setFullYear(dt.getFullYear() - 1);
+      cut = dt.toISOString().slice(0, 10);
+    } else cut = "2024-01-01";
+    const i = D.weeks.findIndex(w => w >= cut);
+    return i < 0 ? 0 : i;
+  }
+
+  function selectGu(name) {
+    selGu = (selGu === name) ? null : name;
+    Object.entries(pathByGu).forEach(([g, p]) => p.classList.toggle("selected", g === selGu));
+    renderChart();
+    history.replaceState(null, "", selGu ? "#" + encodeURIComponent(selGu) : location.pathname);
+    if (selGu) track("select_district", { district: selGu, week: weekNow });
+  }
+
+  document.querySelectorAll("#range-toggle button").forEach(b => {
+    b.addEventListener("click", () => {
+      range = b.dataset.range;
+      document.querySelectorAll("#range-toggle button").forEach(x =>
+        x.setAttribute("aria-pressed", String(x === b)));
+      renderChart();
+      track("change_range", { range: range });
+    });
+  });
+
+  function renderChart() {
+    const i0 = rangeStartIdx();
+    const weeks = D.weeks.slice(i0);
+    const n = weeks.length;
+    const CW = 940, CH = 270, L = 46, R = 70, T = 16, B = 28;
+    chart.setAttribute("viewBox", `0 0 ${CW} ${CH}`);
+
+    // 구간 시작 = 100 재기준
+    function rebased(g) {
+      const s = indexSeries(g);
+      if (!s) return null;
+      const win = s.slice(i0);
+      const base = win.find(v => v != null);
+      if (base == null) return null;
+      return win.map(v => (v == null ? null : v / base * 100));
+    }
+    const series = [];
+    series.push({ name: "서울 전체", color: "var(--series-seoul)", vals: rebased(null), width: 1.6, dash: "" });
+    if (selGu) series.push({ name: selGu, color: "var(--series-gu)", vals: rebased(selGu), width: 2.2, dash: "" });
+    const active = series.filter(s => s.vals);
+
+    let lo = Infinity, hi = -Infinity;
+    active.forEach(s => s.vals.forEach(v => { if (v != null) { if (v < lo) lo = v; if (v > hi) hi = v; } }));
+    if (!isFinite(lo)) { chart.innerHTML = ""; return; }
+    const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+
+    const X = i => L + (n === 1 ? 0 : i / (n - 1) * (CW - L - R));
+    const Y = v => T + (hi - v) / (hi - lo) * (CH - T - B);
+
+    // y 격자 + 눈금
+    let inner = "";
+    const ticks = 4;
+    for (let t = 0; t <= ticks; t++) {
+      const v = lo + (hi - lo) * t / ticks, y = Y(v).toFixed(1);
+      inner += `<line x1="${L}" y1="${y}" x2="${CW - R}" y2="${y}" stroke="#e1e0d9" stroke-width="1"></line>
+        <text x="${L - 8}" y="${+y + 3.5}" text-anchor="end" font-size="10.5" fill="#898781">${v.toFixed(1)}</text>`;
+    }
+    // 100 기준선
+    if (lo < 100 && hi > 100) {
+      inner += `<line x1="${L}" y1="${Y(100)}" x2="${CW - R}" y2="${Y(100)}" stroke="#c3c2b7" stroke-width="1" stroke-dasharray="4,3"></line>`;
+    }
+    // x 눈금 (연/월 경계)
+    let lastLab = "";
+    for (let i = 0; i < n; i++) {
+      const lab = range === "all" ? weeks[i].slice(0, 4) : weeks[i].slice(0, 7);
+      if (lab !== lastLab) {
+        lastLab = lab;
+        const showEvery = range === "all" ? 1 : (range === "2024" ? 3 : 2); // 라벨 밀도 조절
+        const month = +lab.slice(5, 7) || 1;
+        if (range === "all" || (month - 1) % showEvery === 0) {
+          inner += `<line x1="${X(i).toFixed(1)}" y1="${CH - B}" x2="${X(i).toFixed(1)}" y2="${CH - B + 4}" stroke="#c3c2b7"></line>
+            <text x="${X(i).toFixed(1)}" y="${CH - B + 16}" text-anchor="middle" font-size="10.5" fill="#898781">${lab.replace("-", ".")}</text>`;
+        }
+      }
+    }
+    // 선
+    const endLabels = [];
+    active.forEach(s => {
+      let dstr = "", pen = false;
+      s.vals.forEach((v, i) => {
+        if (v == null) { pen = false; return; }
+        dstr += (pen ? "L" : "M") + X(i).toFixed(1) + "," + Y(v).toFixed(1); pen = true;
+      });
+      inner += `<path d="${dstr}" fill="none" stroke="${s.color}" stroke-width="${s.width}" stroke-linejoin="round"></path>`;
+      for (let i = s.vals.length - 1; i >= 0; i--) {
+        if (s.vals[i] != null) { endLabels.push({ y: Y(s.vals[i]), name: s.name, color: s.color }); break; }
+      }
+    });
+    // 우측 끝 직접 라벨 (겹치면 밀어내기)
+    endLabels.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < endLabels.length; i++) {
+      const gap = endLabels[i].y - endLabels[i - 1].y;
+      if (gap < 14) endLabels[i].y = endLabels[i - 1].y + 14;
+    }
+    endLabels.forEach(l => {
+      inner += `<text x="${CW - R + 6}" y="${l.y.toFixed(1)}" font-size="11.5" font-weight="600" fill="${l.color}" dominant-baseline="middle">${l.name}</text>`;
+    });
+    // 크로스헤어 레이어
+    inner += `<line id="xhair" x1="0" y1="${T}" x2="0" y2="${CH - B}" stroke="#0b0b0b" stroke-width="1" stroke-dasharray="3,3" visibility="hidden"></line>
+      <rect id="hit" x="${L}" y="${T}" width="${CW - L - R}" height="${CH - T - B}" fill="transparent"></rect>`;
+    chart.innerHTML = inner;
+
+    document.getElementById("chart-legend").innerHTML = series.map(s =>
+      `<span><i style="background:${s.color}"></i>${s.name}</span>`).join("") +
+      (selGu ? "" : `<span style="color:var(--muted)">자치구 미선택</span>`);
+
+    const hit = chart.querySelector("#hit"), xh = chart.querySelector("#xhair");
+    hit.addEventListener("mousemove", evt => {
+      const box = chart.getBoundingClientRect();
+      const sx = (evt.clientX - box.left) * (CW / box.width);
+      const i = Math.round((sx - L) / (CW - L - R) * (n - 1));
+      if (i < 0 || i >= n) return;
+      xh.setAttribute("x1", X(i)); xh.setAttribute("x2", X(i));
+      xh.setAttribute("visibility", "visible");
+      chartTip.innerHTML = `<div class="w">${weeks[i]} 주</div>` + active.map(s =>
+        `<div class="r"><span class="lg"><i style="background:${s.color}"></i>${s.name}</span><b>${s.vals[i] == null ? "–" : s.vals[i].toFixed(2)}</b></div>`).join("");
+      chartTip.style.display = "block";
+      let tx = evt.clientX + 14, ty = evt.clientY + 14;
+      if (tx + chartTip.offsetWidth > innerWidth - 8) tx = evt.clientX - chartTip.offsetWidth - 14;
+      chartTip.style.left = tx + "px"; chartTip.style.top = ty + "px";
+    });
+    hit.addEventListener("mouseleave", () => {
+      xh.setAttribute("visibility", "hidden"); chartTip.style.display = "none";
+    });
+  }
+  // URL 해시로 초기 상태 지정: #강남구 또는 #강남구,all
+  (function initFromHash() {
+    const raw = decodeURIComponent(location.hash.slice(1));
+    if (!raw) { renderChart(); return; }
+    const [gu, r] = raw.split(",");
+    if (r && ["1y", "2024", "all"].includes(r)) {
+      range = r;
+      document.querySelectorAll("#range-toggle button").forEach(x =>
+        x.setAttribute("aria-pressed", String(x.dataset.range === r)));
+    }
+    if (gu && pathByGu[gu]) {
+      selGu = gu;
+      pathByGu[gu].classList.add("selected");
+    }
+    renderChart();
+  })();
+
+  // ---------- 푸터 ----------
+  document.getElementById("footer").innerHTML =
+    `자료: ${D.source}${D.statblNm ? " · " + D.statblNm : ""} · 항목: ${D.itemName} · 수집 기간 ${D.weeks[0]} ~ ${weekNow} (${NW}주) · 생성 ${D.generated}
+     <br>변동률은 전주 대비 %, 색 구간: 하락(파랑) ↔ 보합(회색) ↔ 상승(빨강). 빗금은 해당 주 자료가 없는 자치구.`;
+})();
+</script>
+</body>
+</html>
