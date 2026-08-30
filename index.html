@@ -6,26 +6,10 @@
 <title>서울 자치구 주간 아파트값 지도</title>
 <meta name="description" content="한국부동산원 주간아파트가격동향 기반 서울 25개 자치구 아파트 매매가격 변동률 지도">
 
-<!-- 사이트 설정 (GA 측정 ID 등)은 config.js 에서 관리합니다 -->
+<!-- 사이트 설정(GA4 측정 ID)은 config.js, 로더는 analytics.js — 5개 사이트 공통 규격 -->
 <script src="config.js"></script>
+<script src="analytics.js"></script>
 
-<!-- Google Analytics (GA4) — config.js 에 측정 ID가 있으면 활성화됩니다 -->
-<script>
-  (function () {
-    var id = window.GA_MEASUREMENT_ID;
-    if (!/^G-[A-Z0-9]{6,}$/.test(id || "")) return;                    // 미설정 시 비활성
-    if (location.protocol === "file:" ||
-        /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) return;  // 로컬 확인용 접속은 집계 제외
-    var s = document.createElement("script");
-    s.async = true;
-    s.src = "https://www.googletagmanager.com/gtag/js?id=" + id;
-    document.head.appendChild(s);
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = function () { window.dataLayer.push(arguments); };
-    gtag("js", new Date());
-    gtag("config", id);
-  })();
-</script>
 <style>
   :root {
     --page: #f9f9f7;
@@ -239,8 +223,8 @@
   ];
   const binOf = v => v == null ? null : BINS.find(b => v < b.lt) || BINS[BINS.length - 1];
   const fmt = v => v == null ? "–" : (v > 0 ? "+" : "") + v.toFixed(2);
-  // GA가 설정돼 있을 때만 이벤트 전송 (미설정 시 무동작)
-  const track = (name, params) => { if (window.gtag) window.gtag("event", name, params || {}); };
+  // 이벤트 전송은 analytics.js 의 공통 헬퍼로 위임 (GA 미설정 시 무동작)
+  const track = (name, params) => window.gaEvent(name, params);
   const NW = D.weeks.length;
   const latest = g => { const s = D.regions[g]; return s ? s[NW - 1] : null; };
   const weekNow = D.weeks[NW - 1];

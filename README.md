@@ -3,7 +3,7 @@
 한국부동산원 **주간아파트가격동향**(R-ONE 오픈API)의 매매가격지수를
 서울 25개 자치구 choropleth 지도 + 장기 시계열 차트로 보여주는 정적 페이지입니다.
 
-**→ https://akaiuun12.github.io/apt-baro-map/**
+**→ https://apt-baro-map.vercel.app/**
 
 ![미리보기](docs/preview.png)
 
@@ -59,50 +59,40 @@ python scripts/fetch_data.py
 
 **URL 해시로 상태 공유** — `index.html#강남구,all` 처럼 자치구와 기간을 지정해 링크할 수 있습니다.
 
-## 배포 (GitHub Pages)
+## 배포 (Vercel)
 
-`main` 브랜치의 루트를 그대로 서빙합니다. 빌드 과정이 없으므로 데이터를 갱신한 뒤
-커밋·푸시하면 1~2분 안에 사이트에 반영됩니다.
+빌드가 없는 정적 사이트라 리포 루트가 그대로 서빙됩니다. `main` 에 푸시하면
+Vercel이 1분 안에 배포합니다. 설정은 [vercel.json](vercel.json) 한 파일이 전부입니다.
 
 ```
 python scripts/fetch_data.py          # 최신 주 반영
 git add data/ && git commit -m "데이터 갱신: YYYY-MM-DD 주" && git push
 ```
 
-## Google Analytics
+최초 연결: [vercel.com/new](https://vercel.com/new) 에서 이 리포를 import →
+Framework Preset `Other`, Build Command 없음, Output Directory 루트(`.`) → Deploy.
+환경 변수는 필요 없습니다(데이터 수집은 로컬에서만 실행하고 결과를 커밋합니다).
 
-설정은 [config.js](config.js) 한 곳에 모여 있습니다. `index.html` 은 건드릴 필요가 없습니다.
+## 분석 (Google Analytics 4)
 
-**방법 1 — config.js 직접 편집** (가장 간단)
+사이트마다 **별도 GA4 속성**을 쓰고, 리포당 측정 ID는 한 곳에서만 관리합니다.
 
-```js
-window.GA_MEASUREMENT_ID = "G-XXXXXXXXXX";   // 비워두면 GA를 불러오지 않습니다
-```
+| 항목 | 이 리포에서 |
+|---|---|
+| 측정 ID 위치 | [config.js](config.js) 의 `window.GA_MEASUREMENT_ID` |
+| 로더 | [analytics.js](analytics.js) — 5개 사이트 공통 파일 |
+| 미설정 시 | gtag를 아예 로드하지 않고 사이트는 그대로 동작 |
+| 집계 제외 | `file://`, `localhost` |
+| 이벤트 API | `window.gaEvent(name, params)` / `window.gaPageView(path)` |
 
-**방법 2 — .env 에 넣고 생성**
+측정 ID는 Google Analytics > 관리 > 데이터 스트림에서 확인합니다 (`G-` 로 시작).
+`config.js` 에 넣고 커밋·푸시하면 배포에 반영됩니다.
 
-```
-# .env
-GA_MEASUREMENT_ID=G-XXXXXXXXXX
-```
-```
-python scripts/make_config.py     # .env 를 읽어 config.js 를 생성
-```
+> 측정 ID는 모든 방문자의 브라우저에 노출되는 **공개 식별자**라 비밀값이 아니고,
+> 정적 파일로 서빙돼야 하므로 커밋 대상입니다. 반면 R-ONE 인증키(`RONE_API_KEY`)는
+> 데이터 수집 스크립트 전용이라 `.env` 에만 두고 프런트엔드로 내보내지 않습니다.
 
-넣은 뒤 `git add config.js && git commit && git push` 하면 배포 사이트에 반영됩니다.
-측정 ID는 Google Analytics > 관리 > 데이터 스트림에서 확인할 수 있습니다 (`G-`로 시작).
-
-> **`config.js` 는 커밋해야 합니다.** GitHub Pages 는 리포지토리의 파일을 그대로 서빙하므로,
-> 이 파일이 리포에 없으면 배포된 사이트에서 GA가 켜지지 않습니다.
-> GA4 측정 ID는 어차피 모든 방문자의 브라우저에 노출되는 **공개 식별자**라 비밀값이 아닙니다.
-> 반면 R-ONE API 인증키(`RONE_API_KEY`)는 데이터 수집 스크립트 전용이라
-> `.env` 에만 두고 절대 `config.js` 나 프런트엔드로 내보내지 않습니다.
-
-동작 방식:
-
-- 값이 비어 있거나 형식이 맞지 않으면 gtag 스크립트를 아예 로드하지 않습니다.
-- `file://` 로 연 로컬 파일과 `localhost` 접속은 집계에서 제외됩니다.
-- 기본 페이지뷰 외에 다음 이벤트를 함께 보냅니다:
+기본 페이지뷰 외에 이 사이트가 보내는 이벤트:
 
 | 이벤트 | 발생 시점 | 파라미터 |
 |---|---|---|
@@ -116,9 +106,10 @@ python scripts/make_config.py     # .env 를 읽어 config.js 를 생성
 |---|---|
 | `index.html` | 지도 페이지 (SVG choropleth + 시계열 차트, 툴팁, 범례, 표 보기) |
 | `config.js` | 사이트 설정 (GA4 측정 ID) — 브라우저가 읽으므로 커밋 대상 |
+| `analytics.js` | GA4 로더 (5개 사이트 공통 규격) |
+| `vercel.json` | 배포 설정 (정적 서빙 + 캐시 헤더) |
 | `.env` | API 인증키 등 비공개 값 — 커밋되지 않음 |
 | `scripts/fetch_data.py` | R-ONE API 호출 → `data/latest.js` 생성 (표준 라이브러리만 사용) |
-| `scripts/make_config.py` | `.env` → `config.js` 생성 |
 | `data/seoul_geo.js` | 서울 자치구 경계 ([southkorea/seoul-maps](https://github.com/southkorea/seoul-maps) 간략화판) |
 | `data/history.json` | 전체 주간 이력 캐시 (증분 수신의 기준) |
 | `data/latest.js` | 화면이 읽는 데이터 (변동률 + 지수 원값) |
