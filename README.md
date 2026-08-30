@@ -71,13 +71,34 @@ git add data/ && git commit -m "데이터 갱신: YYYY-MM-DD 주" && git push
 
 ## Google Analytics
 
-GA4 측정 ID만 넣으면 활성화됩니다. [index.html](index.html) 상단의 다음 줄을 수정하세요:
+설정은 [config.js](config.js) 한 곳에 모여 있습니다. `index.html` 은 건드릴 필요가 없습니다.
+
+**방법 1 — config.js 직접 편집** (가장 간단)
 
 ```js
 window.GA_MEASUREMENT_ID = "G-XXXXXXXXXX";   // 비워두면 GA를 불러오지 않습니다
 ```
 
+**방법 2 — .env 에 넣고 생성**
+
+```
+# .env
+GA_MEASUREMENT_ID=G-XXXXXXXXXX
+```
+```
+python scripts/make_config.py     # .env 를 읽어 config.js 를 생성
+```
+
+넣은 뒤 `git add config.js && git commit && git push` 하면 배포 사이트에 반영됩니다.
 측정 ID는 Google Analytics > 관리 > 데이터 스트림에서 확인할 수 있습니다 (`G-`로 시작).
+
+> **`config.js` 는 커밋해야 합니다.** GitHub Pages 는 리포지토리의 파일을 그대로 서빙하므로,
+> 이 파일이 리포에 없으면 배포된 사이트에서 GA가 켜지지 않습니다.
+> GA4 측정 ID는 어차피 모든 방문자의 브라우저에 노출되는 **공개 식별자**라 비밀값이 아닙니다.
+> 반면 R-ONE API 인증키(`RONE_API_KEY`)는 데이터 수집 스크립트 전용이라
+> `.env` 에만 두고 절대 `config.js` 나 프런트엔드로 내보내지 않습니다.
+
+동작 방식:
 
 - 값이 비어 있거나 형식이 맞지 않으면 gtag 스크립트를 아예 로드하지 않습니다.
 - `file://` 로 연 로컬 파일과 `localhost` 접속은 집계에서 제외됩니다.
@@ -94,7 +115,10 @@ window.GA_MEASUREMENT_ID = "G-XXXXXXXXXX";   // 비워두면 GA를 불러오지 
 | 파일 | 역할 |
 |---|---|
 | `index.html` | 지도 페이지 (SVG choropleth + 시계열 차트, 툴팁, 범례, 표 보기) |
+| `config.js` | 사이트 설정 (GA4 측정 ID) — 브라우저가 읽으므로 커밋 대상 |
+| `.env` | API 인증키 등 비공개 값 — 커밋되지 않음 |
 | `scripts/fetch_data.py` | R-ONE API 호출 → `data/latest.js` 생성 (표준 라이브러리만 사용) |
+| `scripts/make_config.py` | `.env` → `config.js` 생성 |
 | `data/seoul_geo.js` | 서울 자치구 경계 ([southkorea/seoul-maps](https://github.com/southkorea/seoul-maps) 간략화판) |
 | `data/history.json` | 전체 주간 이력 캐시 (증분 수신의 기준) |
 | `data/latest.js` | 화면이 읽는 데이터 (변동률 + 지수 원값) |

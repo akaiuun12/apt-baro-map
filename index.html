@@ -6,12 +6,11 @@
 <title>서울 자치구 주간 아파트값 지도</title>
 <meta name="description" content="한국부동산원 주간아파트가격동향 기반 서울 25개 자치구 아파트 매매가격 변동률 지도">
 
-<!-- Google Analytics (GA4) — 측정 ID를 넣으면 활성화됩니다 -->
-<script>
-  // Google Analytics > 관리 > 데이터 스트림에서 확인 (G- 로 시작).
-  // 비워두면 GA를 아예 불러오지 않습니다.
-  window.GA_MEASUREMENT_ID = "";
+<!-- 사이트 설정 (GA 측정 ID 등)은 config.js 에서 관리합니다 -->
+<script src="config.js"></script>
 
+<!-- Google Analytics (GA4) — config.js 에 측정 ID가 있으면 활성화됩니다 -->
+<script>
   (function () {
     var id = window.GA_MEASUREMENT_ID;
     if (!/^G-[A-Z0-9]{6,}$/.test(id || "")) return;                    // 미설정 시 비활성
