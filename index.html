@@ -94,6 +94,7 @@
     stroke: var(--surface); stroke-width: 1.6; cursor: pointer;
     transition: filter .1s ease;
   }
+  .gu:focus { outline: none; }
   .gu:hover, .gu:focus-visible { filter: brightness(0.93); outline: none; stroke: var(--ink); stroke-width: 1.2; }
   .gu.selected { stroke: var(--ink); stroke-width: 2; }
   .gu-label { pointer-events: none; text-anchor: middle; }
@@ -359,7 +360,7 @@
     const [nx, ny] = NUDGE[name] || [0, 0];
     const cx = px(cx0) + nx, cy = py(cy0) + ny;
     const ink = v == null ? "#898781" : bin.ink;
-    const short = name.length > 2 ? name.slice(0, -1) : name.slice(0, 1);
+    const short = name.length > 2 ? name.slice(0, -1) : name;
     const label = document.createElementNS(NS, "text");
     label.setAttribute("class", "gu-label");
     label.setAttribute("x", cx); label.setAttribute("y", cy);
