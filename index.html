@@ -308,18 +308,132 @@
 
   const tooltip = document.getElementById("tooltip");
 
-  function centroid(ring) { // shoelace
-    let a = 0, cx = 0, cy = 0;
-    for (let i = 0; i < ring.length - 1; i++) {
-      const [x1, y1] = ring[i], [x2, y2] = ring[i + 1];
-      const c = x1 * y2 - x2 * y1;
-      a += c; cx += (x1 + x2) * c; cy += (y1 + y2) * c;
+  // ---------- 라벨 배치 ----------
+  // 자치구 경계는 오목한 모양이 많아 무게중심(centroid)이 경계 밖이나 경계선 위에
+  // 놓이는 경우가 있다. 대신 "가장 큰 내접원의 중심"(pole of inaccessibility)을
+  // 화면 좌표계에서 구해 라벨을 경계에서 가장 먼 곳에 둔다.
+  function segDist2(x, y, ax, ay, bx, by) {
+    let dx = bx - ax, dy = by - ay;
+    if (dx || dy) {
+      const t = ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy);
+      if (t > 1) { ax = bx; ay = by; }
+      else if (t > 0) { ax += dx * t; ay += dy * t; }
     }
-    a /= 2;
-    return [cx / (6 * a), cy / (6 * a)];
+    dx = x - ax; dy = y - ay;
+    return dx * dx + dy * dy;
   }
 
-  const NUDGE = { "중구": [0, -2], "종로구": [8, 6], "성동구": [0, 3], "동대문구": [2, 3], "금천구": [0, -4] };
+  function inRing(x, y, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i], [xj, yj] = ring[j];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+
+  // 경계까지의 부호 있는 거리 (내부 +, 외부 -)
+  function clearance(x, y, ring) {
+    let m = Infinity;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const d = segDist2(x, y, ring[j][0], ring[j][1], ring[i][0], ring[i][1]);
+      if (d < m) m = d;
+    }
+    return (inRing(x, y, ring) ? 1 : -1) * Math.sqrt(m);
+  }
+
+  const SQRT2 = Math.SQRT2;
+
+  function polylabel(ring, precision) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const [x, y] of ring) {
+      if (x < minX) minX = x; if (y < minY) minY = y;
+      if (x > maxX) maxX = x; if (y > maxY) maxY = y;
+    }
+    const w = maxX - minX, h = maxY - minY;
+    let cell = Math.min(w, h) / 2;
+    if (cell === 0) return [minX, minY, 0];
+
+    const mk = (x, y, half) => {
+      const d = clearance(x, y, ring);
+      return { x, y, h: half, d, max: d + half * SQRT2 };
+    };
+    // 우선순위 큐 대신, 남은 후보를 최대 상한(max) 기준으로 꺼내는 이진 힙
+    const heap = [];
+    const push = c => {
+      heap.push(c);
+      let i = heap.length - 1;
+      while (i > 0) {
+        const p = (i - 1) >> 1;
+        if (heap[p].max >= heap[i].max) break;
+        [heap[p], heap[i]] = [heap[i], heap[p]]; i = p;
+      }
+    };
+    const pop = () => {
+      const top = heap[0], last = heap.pop();
+      if (heap.length) {
+        heap[0] = last;
+        let i = 0;
+        for (;;) {
+          const l = 2 * i + 1, r = l + 1; let b = i;
+          if (l < heap.length && heap[l].max > heap[b].max) b = l;
+          if (r < heap.length && heap[r].max > heap[b].max) b = r;
+          if (b === i) break;
+          [heap[b], heap[i]] = [heap[i], heap[b]]; i = b;
+        }
+      }
+      return top;
+    };
+
+    for (let x = minX; x < maxX; x += cell * 2)
+      for (let y = minY; y < maxY; y += cell * 2) push(mk(x + cell, y + cell, cell));
+
+    let best = mk(minX + w / 2, minY + h / 2, 0);
+    while (heap.length) {
+      const c = pop();
+      if (c.d > best.d) best = c;
+      if (c.max - best.d <= precision) continue;
+      const half = c.h / 2;
+      push(mk(c.x - half, c.y - half, half));
+      push(mk(c.x + half, c.y - half, half));
+      push(mk(c.x - half, c.y + half, half));
+      push(mk(c.x + half, c.y + half, half));
+    }
+    return [best.x, best.y, best.d];
+  }
+
+  // 라벨 글상자가 경계 안에 들어가는지 확인하기 위한 텍스트 폭 측정
+  const measureCtx = document.createElement("canvas").getContext("2d");
+  const LABEL_FONT = getComputedStyle(document.body).fontFamily;
+  function textWidth(s, size, weight) {
+    measureCtx.font = `${weight} ${size}px ${LABEL_FONT}`;
+    return measureCtx.measureText(s).width;
+  }
+
+  const NM_SIZE = 13, VAL_SIZE = 11, LINE_GAP = 14;
+  const CAP = 10, DESC = 3, BOX_PAD = 2, EDGE_MARGIN = 1.5, MIN_SCALE = 0.72;
+
+  // 내접원 중심에 두 줄 라벨을 세로 중앙 정렬하고, 글상자가 경계를 넘으면 줄인다.
+  function fitLabel(ring, cx, cy, nameText, valText) {
+    const nw = textWidth(nameText, NM_SIZE, 700);
+    const vw = valText ? textWidth(valText, VAL_SIZE, 500) : 0;
+    const halfW = Math.max(nw, vw) / 2 + BOX_PAD;
+    const top = -CAP;                                   // 이름 베이스라인 기준 상단
+    const bottom = valText ? LINE_GAP + DESC : DESC;    // 하단
+    const nameDy = -(top + bottom) / 2;                 // 글상자 중앙을 중심에 맞춤
+
+    const fits = s => {
+      const hw = halfW * s, t = (top + nameDy) * s, b = (bottom + nameDy) * s;
+      for (const dx of [-1, 0, 1])
+        for (const oy of [t, (t + b) / 2, b])
+          if (clearance(cx + hw * dx, cy + oy, ring) < EDGE_MARGIN) return false;
+      return true;
+    };
+
+    let s = 1;
+    while (s > MIN_SCALE && !fits(s)) s -= 0.04;
+    return { scale: Math.max(s, MIN_SCALE), nameDy };
+  }
 
   // 툴팁 스파크라인 (최근 52주 지수)
   function sparkline(g) {
@@ -356,17 +470,19 @@
     gShapes.appendChild(path);
     pathByGu[name] = path;
 
-    const [cx0, cy0] = centroid(f.geometry.coordinates[0]);
-    const [nx, ny] = NUDGE[name] || [0, 0];
-    const cx = px(cx0) + nx, cy = py(cy0) + ny;
+    const ringPx = f.geometry.coordinates[0].map(([x, y]) => [px(x), py(y)]);
+    const [cx, cy] = polylabel(ringPx, 0.6);
     const ink = v == null ? "#898781" : bin.ink;
     const short = name.length > 2 ? name.slice(0, -1) : name;
+    const valText = v == null ? "" : fmt(v);
+    const { scale, nameDy } = fitLabel(ringPx, cx, cy, short, valText);
     const label = document.createElementNS(NS, "text");
     label.setAttribute("class", "gu-label");
-    label.setAttribute("x", cx); label.setAttribute("y", cy);
+    label.setAttribute("transform",
+      `translate(${cx.toFixed(1)},${cy.toFixed(1)}) scale(${scale.toFixed(3)})`);
     label.innerHTML =
-      `<tspan class="nm" x="${cx}" dy="0" fill="${ink}">${short}</tspan>` +
-      (v == null ? "" : `<tspan class="val" x="${cx}" dy="14" fill="${ink}">${fmt(v)}</tspan>`);
+      `<tspan class="nm" x="0" y="${nameDy.toFixed(1)}" fill="${ink}">${short}</tspan>` +
+      (valText ? `<tspan class="val" x="0" y="${(nameDy + LINE_GAP).toFixed(1)}" fill="${ink}">${valText}</tspan>` : "");
     gLabels.appendChild(label);
 
     const show = (evt) => {
