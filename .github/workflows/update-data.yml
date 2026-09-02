@@ -1,0 +1,52 @@
+# 한국부동산원 R-ONE 오픈API에서 주간 데이터를 받아 data/ 를 갱신하고 커밋한다.
+# main 에 푸시되면 Vercel 이 자동으로 재배포한다 (Vercel 프로젝트가 이 리포에 연결돼 있어야 함).
+#
+# 필요한 설정: 리포 Settings › Secrets and variables › Actions 에 RONE_API_KEY 등록.
+name: 데이터 갱신
+
+on:
+  schedule:
+    # 부동산원 공표는 매주 목요일 정오(KST). 목 14:00 KST 에 받고, 금 10:00 KST 에 한 번 더 시도한다.
+    - cron: "0 5 * * 4"
+    - cron: "0 1 * * 5"
+  workflow_dispatch: # 수동 실행
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # fetch_data.py 는 표준 라이브러리만 쓰므로 의존성 설치가 없다.
+      - name: 데이터 수신
+        env:
+          RONE_API_KEY: ${{ secrets.RONE_API_KEY }}
+        run: |
+          if [ -z "$RONE_API_KEY" ]; then
+            echo "::error::RONE_API_KEY 시크릿이 없습니다. Settings › Secrets and variables › Actions 에서 등록하세요."
+            exit 1
+          fi
+          python scripts/fetch_data.py
+
+      - name: 변경분 커밋
+        run: |
+          if git diff --quiet -- data; then
+            echo "새 주차 없음 — 커밋할 변경이 없습니다."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git commit -m "데이터 갱신: $(date -u +%Y-%m-%d)"
+          git push
