@@ -8,4 +8,4 @@
  * 측정 ID는 모든 방문자의 브라우저에 노출되는 공개 식별자라 비밀값이 아니며,
  * 정적 파일로 그대로 서빙돼야 하므로 커밋 대상입니다.
  */
-window.GA_MEASUREMENT_ID = ""; // 예: "G-XXXXXXXXXX"
+window.GA_MEASUREMENT_ID = "G-JG6V34C6BE"; // 예: "G-XXXXXXXXXX"
