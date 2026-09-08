@@ -1,3 +1,1 @@
-// scripts/fetch_cheongyak.py 가 덮어쓰는 파일입니다.
-// 인증키(CHEONGYAK_API_KEY)가 설정되기 전에는 비어 있고, 이때 청약 UI는 표시되지 않습니다.
-window.CHEONGYAK = { "source": "한국부동산원 청약홈 (공공데이터포털 오픈API)", "generated": "", "asOf": "", "horizon": "", "kinds": [], "regions": {} };
+window.CHEONGYAK = {"source": "한국부동산원 청약홈 (공공데이터포털 오픈API)", "generated": "2026-09-08 03:44", "asOf": "2026-09-08", "horizon": "2026-12-07", "kinds": ["APT", "무순위·잔여세대"], "regions": {"성북구": [{"name": "브라운스톤 월곡 센트럴", "kind": "APT", "detail": "민영", "addr": "서울특별시 성북구 하월곡동 70-4번지 일원", "households": 62, "notice": "2026-08-28", "begin": "2026-09-07", "end": "2026-09-10", "award": "2026-09-16", "url": "https://www.applyhome.co.kr/ai/aia/selectAPTLttotPblancDetail.do?houseManageNo=2026000399&pblancNo=2026000399", "status": "접수중"}]}};
