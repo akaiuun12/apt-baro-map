@@ -134,14 +134,19 @@ def gu_of(row):
     return None
 
 
-def normalize(row, kind, today, horizon):
+def normalize(row, kind, today, horizon, undated):
     gu = gu_of(row)
     if not gu:
         return None, None
     begins, ends = pick_dates(row, BEGIN_FIELDS), pick_dates(row, END_FIELDS)
     begin = begins[0] if begins else None
     end = ends[-1] if ends else begin
-    if not end or end < today:          # 이미 끝난 건은 제외
+    if not end:
+        # 접수일 필드를 하나도 못 찾았다 = 서비스 명세가 바뀌었을 수 있다.
+        # 조용히 버리면 "0건"으로만 보이므로, 첫 사례의 키 목록을 남긴다.
+        undated.append(row)
+        return None, None
+    if end < today:                     # 이미 끝난 건은 제외
         return None, None
     if begin and begin > horizon:       # 너무 먼 미래는 제외
         return None, None
@@ -185,14 +190,19 @@ def main():
     regions, total = {}, 0
     for op, kind in OPERATIONS:
         rows = fetch_op(op, key)
-        kept = 0
+        kept, undated = 0, []
         for r in rows:
-            gu, item = normalize(r, kind, today_s, horizon)
+            gu, item = normalize(r, kind, today_s, horizon, undated)
             if item:
                 regions.setdefault(gu, []).append(item)
                 kept += 1
         total += kept
-        print(f"  {kind}: 서울 {len(rows)}건 중 {kept}건 (예정·접수중)")
+        print(f"  {kind}: 서울 {len(rows)}건 중 {kept}건 (예정·접수중)"
+              + (f" · 접수일 없음 {len(undated)}건" if undated else ""))
+        if undated:
+            print(f"    [확인 필요] {op} 응답에서 접수일 필드를 찾지 못했습니다. "
+                  f"BEGIN_FIELDS / END_FIELDS 를 아래 키와 맞춰 주세요:")
+            print("    " + ", ".join(sorted(undated[0].keys())))
 
     for lst in regions.values():
         lst.sort(key=lambda x: (x["begin"] or "9999", x["name"]))
