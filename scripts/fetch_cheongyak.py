@@ -47,14 +47,18 @@ SEOUL_GUS = [
     "구로구", "금천구", "영등포구", "동작구", "관악구", "서초구", "강남구", "송파구", "강동구",
 ]
 
-# 접수 시작 후보 필드 (APT는 순위별로 나뉘어 있어 가장 이른 날짜를 시작으로 본다)
+# 접수일 후보 필드. 오퍼레이션마다 이름이 달라 둘 다 담아 두고,
+#   APT      : 특별공급 + 일반 1·2순위(해당지역/기타경기/기타지역)로 쪼개져 있다
+#   무순위   : SUBSCRPT_RCEPT_* (청약접수) / GNRL_RCEPT_* (일반접수)
+# 존재하는 것 중 가장 이른 날짜를 시작, 가장 늦은 날짜를 종료로 본다.
+# 계약기간(CNTRCT_CNCLS_*)은 접수일이 아니므로 넣지 않는다.
 BEGIN_FIELDS = [
-    "RCEPT_BGNDE", "SPSPLY_RCEPT_BGNDE",
+    "RCEPT_BGNDE", "SPSPLY_RCEPT_BGNDE", "SUBSCRPT_RCEPT_BGNDE", "GNRL_RCEPT_BGNDE",
     "GNRL_RNK1_CRSPAREA_RCPTDE", "GNRL_RNK1_ETC_GG_RCPTDE", "GNRL_RNK1_ETC_AREA_RCPTDE",
     "GNRL_RNK2_CRSPAREA_RCPTDE", "GNRL_RNK2_ETC_GG_RCPTDE", "GNRL_RNK2_ETC_AREA_RCPTDE",
 ]
 END_FIELDS = [
-    "RCEPT_ENDDE", "SPSPLY_RCEPT_ENDDE",
+    "RCEPT_ENDDE", "SPSPLY_RCEPT_ENDDE", "SUBSCRPT_RCEPT_ENDDE", "GNRL_RCEPT_ENDDE",
     "GNRL_RNK1_CRSPAREA_ENDDE", "GNRL_RNK1_ETC_GG_ENDDE", "GNRL_RNK1_ETC_AREA_ENDDE",
     "GNRL_RNK2_CRSPAREA_ENDDE", "GNRL_RNK2_ETC_GG_ENDDE", "GNRL_RNK2_ETC_AREA_ENDDE",
 ]
