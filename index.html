@@ -3,8 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>서울 자치구 주간 아파트값 지도</title>
-<meta name="description" content="한국부동산원 주간아파트가격동향 기반 서울 25개 자치구 아파트 매매가격 변동률 지도">
+<title>아파트 바로맵</title>
+<meta name="description" content="서울시 부동산 바로미터 맵">
+<meta property="og:type" content="website">
+<meta property="og:title" content="아파트 바로맵">
+<meta property="og:description" content="서울시 부동산 바로미터 맵">
+<meta name="twitter:card" content="summary_large_image">
 
 <!-- 사이트 설정(GA4 측정 ID)은 config.js, 로더는 analytics.js — 5개 사이트 공통 규격 -->
 <script src="config.js"></script>
@@ -34,8 +38,9 @@
   .wrap { max-width: 1060px; margin: 0 auto; padding: 28px 20px 48px; }
 
   header h1 { font-size: 26px; font-weight: 800; margin: 0 0 4px; letter-spacing: -0.02em; }
-  header .sub { color: var(--ink-2); font-size: 13.5px; margin: 0; }
-  header .sub b { font-weight: 700; color: var(--ink); }
+  header .tagline { color: var(--ink-2); font-size: 14.5px; font-weight: 600; margin: 0 0 3px; }
+  header .sub { color: var(--muted); font-size: 12.5px; margin: 0; }
+  header .sub b { font-weight: 700; color: var(--ink-2); }
 
   .sample-note {
     margin: 14px 0 0; padding: 10px 14px; border-radius: 10px;
@@ -88,15 +93,32 @@
     background: var(--ink); color: #fff; font-weight: 600;
   }
 
-  #map-box { margin-top: 8px; }
-  #map { width: 100%; height: auto; display: block; }
+  #map-box { margin-top: 8px; position: relative; }
+  #map {
+    width: 100%; height: auto; display: block;
+    touch-action: pan-y;            /* 원래 배율에선 한 손가락 = 페이지 스크롤 */
+    user-select: none; -webkit-user-select: none;
+  }
+  #map.pannable { cursor: grab; touch-action: none; }  /* 확대 상태에선 한 손가락 = 지도 이동 */
+  #map.panning { cursor: grabbing; }
+  /* --k = 현재 배율. 선 굵기는 확대해도 화면상 두께가 유지되도록 나눠 준다. */
   .gu {
-    stroke: var(--surface); stroke-width: 1.6; cursor: pointer;
+    stroke: var(--surface); stroke-width: calc(1.6px / var(--k, 1)); cursor: pointer;
     transition: filter .1s ease;
   }
   .gu:focus { outline: none; }
-  .gu:hover, .gu:focus-visible { filter: brightness(0.93); outline: none; stroke: var(--ink); stroke-width: 1.2; }
-  .gu.selected { stroke: var(--ink); stroke-width: 2; }
+  .gu:hover, .gu:focus-visible { filter: brightness(0.93); outline: none; stroke: var(--ink); stroke-width: calc(1.2px / var(--k, 1)); }
+  .gu.selected { stroke: var(--ink); stroke-width: calc(2px / var(--k, 1)); }
+
+  .map-zoom { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .map-zoom button {
+    width: 30px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface); color: var(--ink-2); font: inherit; font-size: 15px; line-height: 1;
+    cursor: pointer; box-shadow: 0 1px 3px rgba(11, 11, 11, .06);
+  }
+  .map-zoom button:hover:not(:disabled) { background: #f2f1ec; }
+  .map-zoom button:disabled { opacity: .35; cursor: default; }
+  .map-hint { color: var(--muted); font-size: 11.5px; margin: 4px 2px 0; }
   .gu-label { pointer-events: none; text-anchor: middle; }
   .gu-label .nm { font-size: 13px; font-weight: 700; }
   .gu-label .val { font-size: 11px; font-weight: 500; }
@@ -147,7 +169,8 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>서울 자치구 주간 아파트값 지도</h1>
+    <h1>아파트 바로맵</h1>
+    <p class="tagline">서울시 부동산 바로미터 맵</p>
     <p class="sub" id="subtitle"></p>
   </header>
   <div id="sample-banner"></div>
@@ -179,7 +202,15 @@
       </div>
     </div>
 
-    <div id="map-box"><svg id="map" role="img" aria-label="서울 자치구별 주간 아파트 매매가격 변동률 지도"></svg></div>
+    <div id="map-box">
+      <svg id="map" role="img" aria-label="서울 자치구별 주간 아파트 매매가격 변동률 지도"></svg>
+      <div class="map-zoom" role="group" aria-label="지도 확대 · 축소">
+        <button type="button" id="zoom-in" aria-label="확대" title="확대">＋</button>
+        <button type="button" id="zoom-out" aria-label="축소" title="축소">－</button>
+        <button type="button" id="zoom-reset" aria-label="원래 배율로" title="원래 배율로">⟲</button>
+      </div>
+      <p class="map-hint">휠 · 핀치로 확대, 드래그로 이동</p>
+    </div>
     <div id="table-view"></div>
   </div>
 
@@ -302,9 +333,11 @@
     </pattern>
   </defs>`;
 
+  const gView = document.createElementNS(NS, "g");   // 확대·이동이 적용되는 그룹
   const gShapes = document.createElementNS(NS, "g");
   const gLabels = document.createElementNS(NS, "g");
-  svg.appendChild(gShapes); svg.appendChild(gLabels);
+  gView.appendChild(gShapes); gView.appendChild(gLabels);
+  svg.appendChild(gView);
 
   const tooltip = document.getElementById("tooltip");
 
@@ -451,6 +484,7 @@
   }
 
   const pathByGu = {};
+  const labelEls = [];   // 확대해도 글씨 크기를 유지하기 위해 배율마다 다시 그린다
 
   GEO.features.forEach(f => {
     const name = f.properties.SIG_KOR_NM;
@@ -484,6 +518,7 @@
       `<tspan class="nm" x="0" y="${nameDy.toFixed(1)}" fill="${ink}">${short}</tspan>` +
       (valText ? `<tspan class="val" x="0" y="${(nameDy + LINE_GAP).toFixed(1)}" fill="${ink}">${valText}</tspan>` : "");
     gLabels.appendChild(label);
+    labelEls.push({ el: label, cx, cy, s: scale });
 
     const show = (evt) => {
       const s = D.regions[name] || [];
@@ -517,9 +552,123 @@
       show({ clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 });
     });
     path.addEventListener("blur", hide);
-    path.addEventListener("click", () => selectGu(name));
+    path.addEventListener("click", () => { if (!dragged()) selectGu(name); });
     path.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectGu(name); } });
   });
+
+  // ---------- 지도 확대 · 이동 ----------
+  // 터치(핀치·드래그) / 마우스(휠·드래그) / 버튼 · 키보드 모두 지원한다.
+  const MIN_K = 1, MAX_K = 8;
+  let zk = 1, tx = 0, ty = 0;
+  const zoomIn = document.getElementById("zoom-in");
+  const zoomOut = document.getElementById("zoom-out");
+  const zoomReset = document.getElementById("zoom-reset");
+
+  const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
+
+  function applyView() {
+    // 지도가 항상 화면을 채우도록 이동 범위를 제한한다.
+    tx = clamp(tx, W * (1 - zk), 0);
+    ty = clamp(ty, H * (1 - zk), 0);
+    gView.setAttribute("transform", `translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${zk.toFixed(4)})`);
+    svg.style.setProperty("--k", zk.toFixed(4));
+    // 라벨은 배율의 역수를 곱해 화면상 크기를 그대로 유지한다.
+    for (const l of labelEls)
+      l.el.setAttribute("transform",
+        `translate(${l.cx.toFixed(1)},${l.cy.toFixed(1)}) scale(${(l.s / zk).toFixed(4)})`);
+    const zoomed = zk > MIN_K + 1e-6;
+    svg.classList.toggle("pannable", zoomed);
+    zoomOut.disabled = zoomReset.disabled = !zoomed;
+    zoomIn.disabled = zk >= MAX_K - 1e-6;
+  }
+
+  // 화면 좌표 → viewBox 좌표 (뷰포트 변환 전 기준)
+  function toView(clientX, clientY) {
+    const r = svg.getBoundingClientRect();
+    return [(clientX - r.left) / r.width * W, (clientY - r.top) / r.height * H];
+  }
+
+  // (vx, vy) 지점을 고정한 채 배율만 factor 배 한다.
+  function zoomAt(factor, vx, vy) {
+    const k2 = clamp(zk * factor, MIN_K, MAX_K);
+    if (Math.abs(k2 - zk) < 1e-6) return;
+    tx = vx - (vx - tx) * (k2 / zk);
+    ty = vy - (vy - ty) * (k2 / zk);
+    zk = k2;
+    applyView();
+  }
+
+  function zoomCenter(factor) {
+    zoomAt(factor, W / 2, H / 2);
+    track("zoom_map", { level: +zk.toFixed(2) });
+  }
+
+  zoomIn.onclick = () => zoomCenter(1.6);
+  zoomOut.onclick = () => zoomCenter(1 / 1.6);
+  zoomReset.onclick = () => { zk = 1; tx = 0; ty = 0; applyView(); track("zoom_map", { level: 1 }); };
+
+  svg.addEventListener("wheel", e => {
+    e.preventDefault();
+    const [vx, vy] = toView(e.clientX, e.clientY);
+    // deltaMode 1 = 줄 단위(주로 Firefox), 0 = 픽셀 단위
+    zoomAt(Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0022)), vx, vy);
+  }, { passive: false });
+
+  // 포인터 이벤트 하나로 마우스·터치·펜을 함께 처리한다.
+  const pointers = new Map();
+  let panFrom = null, pinchFrom = null, travel = 0;
+  const dragged = () => travel > 6;   // 이동 후의 클릭은 선택으로 보지 않는다
+
+  function pinchOf() {
+    const [a, b] = [...pointers.values()];
+    return { d: Math.hypot(a[0] - b[0], a[1] - b[1]), mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 };
+  }
+
+  svg.addEventListener("pointerdown", e => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    pointers.set(e.pointerId, [e.clientX, e.clientY]);
+    travel = 0;
+    if (pointers.size === 1) { panFrom = [e.clientX, e.clientY]; svg.classList.add("panning"); }
+    else if (pointers.size === 2) { pinchFrom = pinchOf(); }
+  });
+
+  addEventListener("pointermove", e => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, [e.clientX, e.clientY]);
+    const r = svg.getBoundingClientRect();
+    const sx = W / r.width, sy = H / r.height;
+
+    if (pointers.size >= 2 && pinchFrom) {            // 핀치 = 확대 + 이동
+      const now = pinchOf();
+      tx += (now.mx - pinchFrom.mx) * sx;
+      ty += (now.my - pinchFrom.my) * sy;
+      applyView();
+      if (pinchFrom.d > 0) {
+        const [vx, vy] = toView(now.mx, now.my);
+        zoomAt(now.d / pinchFrom.d, vx, vy);
+      }
+      pinchFrom = now;
+      travel = Infinity;
+      e.preventDefault();
+    } else if (panFrom) {                              // 드래그 = 이동
+      const dx = e.clientX - panFrom[0], dy = e.clientY - panFrom[1];
+      travel += Math.abs(dx) + Math.abs(dy);
+      panFrom = [e.clientX, e.clientY];
+      if (zk > MIN_K) { tx += dx * sx; ty += dy * sy; applyView(); }
+    }
+  }, { passive: false });
+
+  function endPointer(e) {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinchFrom = null;
+    if (pointers.size === 0) { panFrom = null; svg.classList.remove("panning"); }
+    else panFrom = [...pointers.values()][0];
+  }
+  addEventListener("pointerup", endPointer);
+  addEventListener("pointercancel", endPointer);
+
+  applyView();
 
   // ---------- 표 보기 ----------
   const tableBox = document.getElementById("table-view");
