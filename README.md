@@ -2,6 +2,7 @@
 
 한국부동산원 **주간아파트가격동향**(R-ONE 오픈API)의 매매가격지수를
 서울 25개 자치구 choropleth 지도 + 장기 시계열 차트로 보여주는 정적 페이지입니다.
+**청약홈 오픈API**를 함께 쓰면 자치구별 청약 예정 · 접수중 정보가 지도에 배지로 표시됩니다.
 
 **→ https://apt-baro-map.vercel.app/**
 
@@ -19,6 +20,14 @@
 
 ```
 RONE_API_KEY=발급받은키
+```
+
+청약 정보까지 표시하려면 공공데이터포털
+[한국부동산원_청약홈 분양정보 조회 서비스](https://www.data.go.kr/data/15098547/openapi.do)
+활용신청 후 받은 **일반 인증키(Decoding)** 를 같은 파일에 추가합니다. (선택)
+
+```
+CHEONGYAK_API_KEY=발급받은키
 ```
 
 ### 3. 데이터 수집
@@ -40,6 +49,17 @@ python scripts/fetch_data.py
 | `--since 2024-01-01` | 화면에 담을 기간 제한 (기본: 전체 이력) |
 | `--full` | 캐시를 버리고 전체 이력 재수신 |
 
+청약 정보는 별도 스크립트로 받습니다. 매주 갱신할 때 함께 실행하면 됩니다.
+
+```
+python scripts/fetch_cheongyak.py            # 기본: 오늘부터 90일 이내 접수 건
+python scripts/fetch_cheongyak.py --days 120 # 기간 조정
+```
+- 수집 대상: **APT 분양** + **APT 무순위 · 잔여세대** (`scripts/fetch_cheongyak.py` 의 `OPERATIONS`)
+- 공급위치 주소에서 서울 자치구를 뽑아 구별로 묶고, 접수 종료일이 지난 건은 버립니다.
+- 결과는 `data/cheongyak.js` / `data/cheongyak.json` 에 저장됩니다.
+  키가 없으면 파일이 비어 있고, 그때는 청약 관련 표시만 화면에서 빠집니다.
+
 ### 4. 지도 열기
 `index.html` 을 브라우저로 열면 됩니다 (로컬 서버 불필요).
 키 설정 전에는 샘플 데이터로 렌더링되며, 상단에 샘플 안내 배너가 표시됩니다.
@@ -50,6 +70,10 @@ python scripts/fetch_data.py
 - 색: 하락(파랑) ↔ 보합 ±0.02%p(회색) ↔ 상승(빨강), 구간별 4단계 diverging ramp
 - 빗금: 해당 주 자료가 없는 자치구
 - 마우스를 올리면 최근 1년 스파크라인 + 최근 8주 변동률 툴팁
+- **청약 배지**: 청약 예정 · 접수중 건이 있는 자치구에 건수 배지를 표시하고,
+  툴팁에 단지명 · 유형 · 세대수 · 접수기간 · 상태를 함께 보여줍니다
+- **확대 · 이동**: 휠 · 핀치로 확대(최대 8배), 드래그로 이동, 우측 버튼으로 확대 · 축소 · 원복.
+  원래 배율에서는 한 손가락 터치가 페이지 스크롤로 동작하고, 확대한 뒤에는 지도 이동으로 바뀝니다
 - 우측 상단 "표" 버튼으로 전체 자치구 표 보기 전환
 
 **시계열 차트** — 매매가격지수 추이
@@ -66,8 +90,13 @@ Vercel이 1분 안에 배포합니다. 설정은 [vercel.json](vercel.json) 한 
 
 ```
 python scripts/fetch_data.py          # 최신 주 반영
+python scripts/fetch_cheongyak.py     # 청약 예정 정보 (선택)
 git add data/ && git commit -m "데이터 갱신: YYYY-MM-DD 주" && git push
 ```
+
+`.github/workflows/update-data.yml` 이 매주 목 · 금에 위 두 스크립트를 실행하고
+변경분을 자동 커밋합니다. 리포 Settings › Secrets and variables › Actions 에
+`RONE_API_KEY`(필수)와 `CHEONGYAK_API_KEY`(선택)를 등록해 두면 됩니다.
 
 최초 연결: [vercel.com/new](https://vercel.com/new) 에서 이 리포를 import →
 Framework Preset `Other`, Build Command 없음, Output Directory 루트(`.`) → Deploy.
