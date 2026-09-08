@@ -3,8 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>서울 자치구 주간 아파트값 지도</title>
-<meta name="description" content="한국부동산원 주간아파트가격동향 기반 서울 25개 자치구 아파트 매매가격 변동률 지도">
+<title>아파트 바로맵</title>
+<meta name="description" content="서울시 부동산 바로미터 맵">
+<meta property="og:type" content="website">
+<meta property="og:title" content="아파트 바로맵">
+<meta property="og:description" content="서울시 부동산 바로미터 맵">
+<meta name="twitter:card" content="summary_large_image">
 
 <!-- 사이트 설정(GA4 측정 ID)은 config.js, 로더는 analytics.js — 5개 사이트 공통 규격 -->
 <script src="config.js"></script>
@@ -34,8 +38,9 @@
   .wrap { max-width: 1060px; margin: 0 auto; padding: 28px 20px 48px; }
 
   header h1 { font-size: 26px; font-weight: 800; margin: 0 0 4px; letter-spacing: -0.02em; }
-  header .sub { color: var(--ink-2); font-size: 13.5px; margin: 0; }
-  header .sub b { font-weight: 700; color: var(--ink); }
+  header .tagline { color: var(--ink-2); font-size: 14.5px; font-weight: 600; margin: 0 0 3px; }
+  header .sub { color: var(--muted); font-size: 12.5px; margin: 0; }
+  header .sub b { font-weight: 700; color: var(--ink-2); }
 
   .sample-note {
     margin: 14px 0 0; padding: 10px 14px; border-radius: 10px;
@@ -88,18 +93,36 @@
     background: var(--ink); color: #fff; font-weight: 600;
   }
 
-  #map-box { margin-top: 8px; }
-  #map { width: 100%; height: auto; display: block; }
+  #map-box { margin-top: 8px; position: relative; }
+  #map {
+    width: 100%; height: auto; display: block;
+    touch-action: pan-y;            /* 원래 배율에선 한 손가락 = 페이지 스크롤 */
+    user-select: none; -webkit-user-select: none;
+  }
+  #map.pannable { cursor: grab; touch-action: none; }  /* 확대 상태에선 한 손가락 = 지도 이동 */
+  #map.panning { cursor: grabbing; }
+  /* --k = 현재 배율. 선 굵기는 확대해도 화면상 두께가 유지되도록 나눠 준다. */
   .gu {
-    stroke: var(--surface); stroke-width: 1.6; cursor: pointer;
+    stroke: var(--surface); stroke-width: calc(1.6px / var(--k, 1)); cursor: pointer;
     transition: filter .1s ease;
   }
   .gu:focus { outline: none; }
-  .gu:hover, .gu:focus-visible { filter: brightness(0.93); outline: none; stroke: var(--ink); stroke-width: 1.2; }
-  .gu.selected { stroke: var(--ink); stroke-width: 2; }
+  .gu:hover, .gu:focus-visible { filter: brightness(0.93); outline: none; stroke: var(--ink); stroke-width: calc(1.2px / var(--k, 1)); }
+  .gu.selected { stroke: var(--ink); stroke-width: calc(2px / var(--k, 1)); }
+
+  .map-zoom { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .map-zoom button {
+    width: 30px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface); color: var(--ink-2); font: inherit; font-size: 15px; line-height: 1;
+    cursor: pointer; box-shadow: 0 1px 3px rgba(11, 11, 11, .06);
+  }
+  .map-zoom button:hover:not(:disabled) { background: #f2f1ec; }
+  .map-zoom button:disabled { opacity: .35; cursor: default; }
+  .map-hint { color: var(--muted); font-size: 11.5px; margin: 4px 2px 0; }
   .gu-label { pointer-events: none; text-anchor: middle; }
   .gu-label .nm { font-size: 13px; font-weight: 700; }
   .gu-label .val { font-size: 11px; font-weight: 500; }
+  .gu-label .bdg-t { font-size: 10px; font-weight: 700; }
 
   #tooltip {
     position: fixed; z-index: 10; pointer-events: none; display: none;
@@ -114,6 +137,17 @@
   #tooltip .tt-bar { height: 4px; border-radius: 2px; margin-left: 8px; display: inline-block; vertical-align: middle; }
   #tooltip .tt-spark { margin: 4px 0 6px; }
   #tooltip .tt-spark-cap { font-size: 10.5px; color: var(--muted); margin-bottom: 2px; }
+  #tooltip .tt-cy { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--hairline); }
+  #tooltip .tt-cy-cap { font-size: 10.5px; color: var(--muted); margin-bottom: 3px; }
+  #tooltip .tt-cy td { vertical-align: top; }
+  #tooltip .tt-cy td:first-child { color: var(--ink); font-weight: 600; padding-right: 10px; }
+  #tooltip .tt-cy .tt-sub { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+  #tooltip .tt-cy .tt-flag {
+    display: inline-block; margin-left: 5px; padding: 0 5px; border-radius: 999px;
+    font-size: 10px; font-weight: 600; background: var(--hairline); color: var(--ink-2);
+  }
+  #tooltip .tt-cy .tt-flag.on { background: #1f7a4d; color: #fff; }
+  #tooltip .tt-cy .tt-more { color: var(--muted); font-size: 11px; margin-top: 3px; }
 
   #table-view { display: none; margin-top: 8px; overflow-x: auto; }
   #table-view table { border-collapse: collapse; width: 100%; font-size: 13px; }
@@ -147,7 +181,8 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>서울 자치구 주간 아파트값 지도</h1>
+    <h1>아파트 바로맵</h1>
+    <p class="tagline">서울시 부동산 바로미터 맵</p>
     <p class="sub" id="subtitle"></p>
   </header>
   <div id="sample-banner"></div>
@@ -179,7 +214,15 @@
       </div>
     </div>
 
-    <div id="map-box"><svg id="map" role="img" aria-label="서울 자치구별 주간 아파트 매매가격 변동률 지도"></svg></div>
+    <div id="map-box">
+      <svg id="map" role="img" aria-label="서울 자치구별 주간 아파트 매매가격 변동률 지도"></svg>
+      <div class="map-zoom" role="group" aria-label="지도 확대 · 축소">
+        <button type="button" id="zoom-in" aria-label="확대" title="확대">＋</button>
+        <button type="button" id="zoom-out" aria-label="축소" title="축소">－</button>
+        <button type="button" id="zoom-reset" aria-label="원래 배율로" title="원래 배율로">⟲</button>
+      </div>
+      <p class="map-hint" id="map-hint">휠 · 핀치로 확대, 드래그로 이동</p>
+    </div>
     <div id="table-view"></div>
   </div>
 
@@ -206,9 +249,17 @@
 
 <script src="data/seoul_geo.js"></script>
 <script src="data/latest.js"></script>
+<script src="data/cheongyak.js"></script>
 <script>
 (function () {
   const D = window.APT_DATA, GEO = window.SEOUL_GEO;
+  // 청약홈 데이터는 인증키가 있을 때만 채워진다. 없으면 관련 UI 전체가 조용히 빠진다.
+  const CY = window.CHEONGYAK || { regions: {} };
+  const cyOf = g => CY.regions[g] || [];
+  const cyTotal = Object.values(CY.regions).reduce((n, l) => n + l.length, 0);
+  // 청약 항목은 외부 API 문자열이므로 innerHTML 에 넣기 전에 반드시 이스케이프한다.
+  const esc = v => String(v == null ? "" : v)
+    .replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const NEUTRAL = "#f0efec";
   // 상승(빨강)/하락(파랑) diverging — 팔레트 검증기 통과 ramp
   const BINS = [
@@ -302,9 +353,11 @@
     </pattern>
   </defs>`;
 
+  const gView = document.createElementNS(NS, "g");   // 확대·이동이 적용되는 그룹
   const gShapes = document.createElementNS(NS, "g");
   const gLabels = document.createElementNS(NS, "g");
-  svg.appendChild(gShapes); svg.appendChild(gLabels);
+  gView.appendChild(gShapes); gView.appendChild(gLabels);
+  svg.appendChild(gView);
 
   const tooltip = document.getElementById("tooltip");
 
@@ -412,15 +465,18 @@
 
   const NM_SIZE = 13, VAL_SIZE = 11, LINE_GAP = 14;
   const CAP = 10, DESC = 3, BOX_PAD = 2, EDGE_MARGIN = 1.5, MIN_SCALE = 0.72;
+  const BADGE_H = 15, BADGE_GAP = 3, BADGE_SIZE = 10, BADGE_PAD = 12;
 
-  // 내접원 중심에 두 줄 라벨을 세로 중앙 정렬하고, 글상자가 경계를 넘으면 줄인다.
-  function fitLabel(ring, cx, cy, nameText, valText) {
+  // 내접원 중심에 라벨(청약 배지 + 이름 + 수치)을 세로 중앙 정렬하고,
+  // 글상자가 경계를 넘으면 줄인다.
+  function fitLabel(ring, cx, cy, nameText, valText, badgeText) {
     const nw = textWidth(nameText, NM_SIZE, 700);
     const vw = valText ? textWidth(valText, VAL_SIZE, 500) : 0;
-    const halfW = Math.max(nw, vw) / 2 + BOX_PAD;
-    const top = -CAP;                                   // 이름 베이스라인 기준 상단
-    const bottom = valText ? LINE_GAP + DESC : DESC;    // 하단
-    const nameDy = -(top + bottom) / 2;                 // 글상자 중앙을 중심에 맞춤
+    const bw = badgeText ? textWidth(badgeText, BADGE_SIZE, 700) + BADGE_PAD : 0;
+    const halfW = Math.max(nw, vw, bw) / 2 + BOX_PAD;
+    const top = -CAP - (badgeText ? BADGE_H + BADGE_GAP : 0);  // 이름 베이스라인 기준 상단
+    const bottom = valText ? LINE_GAP + DESC : DESC;           // 하단
+    const nameDy = -(top + bottom) / 2;                        // 글상자 중앙을 중심에 맞춤
 
     const fits = s => {
       const hw = halfW * s, t = (top + nameDy) * s, b = (bottom + nameDy) * s;
@@ -432,7 +488,7 @@
 
     let s = 1;
     while (s > MIN_SCALE && !fits(s)) s -= 0.04;
-    return { scale: Math.max(s, MIN_SCALE), nameDy };
+    return { scale: Math.max(s, MIN_SCALE), nameDy, top, badgeW: bw };
   }
 
   // 툴팁 스파크라인 (최근 52주 지수)
@@ -450,7 +506,21 @@
         stroke="${rising ? "#dd4a41" : "#2a78d6"}" stroke-width="1.8" stroke-linejoin="round"></polyline></svg></div>`;
   }
 
+  // 툴팁 하단 청약 블록 (해당 자치구의 예정 · 접수중 건)
+  function cheongyakBlock(g) {
+    const list = cyOf(g);
+    if (!list.length) return "";
+    const md = d => (d ? esc(d).slice(5).replace("-", ".") : "–");
+    const rows = list.slice(0, 3).map(c => `
+      <tr><td>${esc(c.name)}<span class="tt-sub">${esc(c.kind)}${c.households ? " · " + esc(c.households) + "세대" : ""}</span></td>
+          <td>${md(c.begin)}~${md(c.end)}<span class="tt-flag${c.status === "접수중" ? " on" : ""}">${esc(c.status)}</span></td></tr>`).join("");
+    const more = list.length > 3 ? `<div class="tt-more">외 ${list.length - 3}건</div>` : "";
+    return `<div class="tt-cy"><div class="tt-cy-cap">청약 예정 · 접수중 ${list.length}건</div>
+      <table>${rows}</table>${more}</div>`;
+  }
+
   const pathByGu = {};
+  const labelEls = [];   // 확대해도 글씨 크기를 유지하기 위해 배율마다 다시 그린다
 
   GEO.features.forEach(f => {
     const name = f.properties.SIG_KOR_NM;
@@ -475,15 +545,25 @@
     const ink = v == null ? "#898781" : bin.ink;
     const short = name.length > 2 ? name.slice(0, -1) : name;
     const valText = v == null ? "" : fmt(v);
-    const { scale, nameDy } = fitLabel(ringPx, cx, cy, short, valText);
-    const label = document.createElementNS(NS, "text");
+    const cyCount = cyOf(name).length;
+    const badgeText = cyCount ? `청약 ${cyCount}` : "";
+    const { scale, nameDy, top, badgeW } = fitLabel(ringPx, cx, cy, short, valText, badgeText);
+    // 배지는 라벨 잉크색을 배경으로 써서 어떤 채움색 위에서도 대비가 확보된다.
+    const badgeInk = v == null ? "#ffffff" : bin.fill;
+    const label = document.createElementNS(NS, "g");
     label.setAttribute("class", "gu-label");
     label.setAttribute("transform",
       `translate(${cx.toFixed(1)},${cy.toFixed(1)}) scale(${scale.toFixed(3)})`);
     label.innerHTML =
-      `<tspan class="nm" x="0" y="${nameDy.toFixed(1)}" fill="${ink}">${short}</tspan>` +
-      (valText ? `<tspan class="val" x="0" y="${(nameDy + LINE_GAP).toFixed(1)}" fill="${ink}">${valText}</tspan>` : "");
+      (badgeText
+        ? `<rect x="${(-badgeW / 2).toFixed(1)}" y="${(nameDy + top).toFixed(1)}" width="${badgeW.toFixed(1)}"
+                 height="${BADGE_H}" rx="${BADGE_H / 2}" fill="${ink}"></rect>
+           <text class="bdg-t" x="0" y="${(nameDy + top + BADGE_H - 4.5).toFixed(1)}" fill="${badgeInk}">${badgeText}</text>`
+        : "") +
+      `<text class="nm" x="0" y="${nameDy.toFixed(1)}" fill="${ink}">${short}</text>` +
+      (valText ? `<text class="val" x="0" y="${(nameDy + LINE_GAP).toFixed(1)}" fill="${ink}">${valText}</text>` : "");
     gLabels.appendChild(label);
+    labelEls.push({ el: label, cx, cy, s: scale });
 
     const show = (evt) => {
       const s = D.regions[name] || [];
@@ -497,7 +577,8 @@
         `<div class="tt-name">${name}</div>
          <div class="tt-now" style="color:${v > 0.02 ? "var(--up-strong)" : v < -0.02 ? "var(--down-strong)" : "var(--ink)"}">${v == null ? "자료 없음" : fmt(v) + "%"}</div>
          ${sparkline(name)}
-         <table>${rows}</table>`;
+         <table>${rows}</table>
+         ${cheongyakBlock(name)}`;
       tooltip.style.display = "block";
       move(evt);
     };
@@ -517,9 +598,126 @@
       show({ clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 });
     });
     path.addEventListener("blur", hide);
-    path.addEventListener("click", () => selectGu(name));
+    path.addEventListener("click", () => { if (!dragged()) selectGu(name); });
     path.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectGu(name); } });
   });
+
+  // ---------- 지도 확대 · 이동 ----------
+  // 터치(핀치·드래그) / 마우스(휠·드래그) / 버튼 · 키보드 모두 지원한다.
+  const MIN_K = 1, MAX_K = 8;
+  let zk = 1, tx = 0, ty = 0;
+  const zoomIn = document.getElementById("zoom-in");
+  const zoomOut = document.getElementById("zoom-out");
+  const zoomReset = document.getElementById("zoom-reset");
+
+  const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
+
+  function applyView() {
+    // 지도가 항상 화면을 채우도록 이동 범위를 제한한다.
+    tx = clamp(tx, W * (1 - zk), 0);
+    ty = clamp(ty, H * (1 - zk), 0);
+    gView.setAttribute("transform", `translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${zk.toFixed(4)})`);
+    svg.style.setProperty("--k", zk.toFixed(4));
+    // 라벨은 배율의 역수를 곱해 화면상 크기를 그대로 유지한다.
+    for (const l of labelEls)
+      l.el.setAttribute("transform",
+        `translate(${l.cx.toFixed(1)},${l.cy.toFixed(1)}) scale(${(l.s / zk).toFixed(4)})`);
+    const zoomed = zk > MIN_K + 1e-6;
+    svg.classList.toggle("pannable", zoomed);
+    zoomOut.disabled = zoomReset.disabled = !zoomed;
+    zoomIn.disabled = zk >= MAX_K - 1e-6;
+  }
+
+  // 화면 좌표 → viewBox 좌표 (뷰포트 변환 전 기준)
+  function toView(clientX, clientY) {
+    const r = svg.getBoundingClientRect();
+    return [(clientX - r.left) / r.width * W, (clientY - r.top) / r.height * H];
+  }
+
+  // (vx, vy) 지점을 고정한 채 배율만 factor 배 한다.
+  function zoomAt(factor, vx, vy) {
+    const k2 = clamp(zk * factor, MIN_K, MAX_K);
+    if (Math.abs(k2 - zk) < 1e-6) return;
+    tx = vx - (vx - tx) * (k2 / zk);
+    ty = vy - (vy - ty) * (k2 / zk);
+    zk = k2;
+    applyView();
+  }
+
+  function zoomCenter(factor) {
+    zoomAt(factor, W / 2, H / 2);
+    track("zoom_map", { level: +zk.toFixed(2) });
+  }
+
+  zoomIn.onclick = () => zoomCenter(1.6);
+  zoomOut.onclick = () => zoomCenter(1 / 1.6);
+  zoomReset.onclick = () => { zk = 1; tx = 0; ty = 0; applyView(); track("zoom_map", { level: 1 }); };
+
+  svg.addEventListener("wheel", e => {
+    e.preventDefault();
+    const [vx, vy] = toView(e.clientX, e.clientY);
+    // deltaMode 1 = 줄 단위(주로 Firefox), 0 = 픽셀 단위
+    zoomAt(Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0022)), vx, vy);
+  }, { passive: false });
+
+  // 포인터 이벤트 하나로 마우스·터치·펜을 함께 처리한다.
+  const pointers = new Map();
+  let panFrom = null, pinchFrom = null, travel = 0;
+  const dragged = () => travel > 6;   // 이동 후의 클릭은 선택으로 보지 않는다
+
+  function pinchOf() {
+    const [a, b] = [...pointers.values()];
+    return { d: Math.hypot(a[0] - b[0], a[1] - b[1]), mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 };
+  }
+
+  svg.addEventListener("pointerdown", e => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    pointers.set(e.pointerId, [e.clientX, e.clientY]);
+    travel = 0;
+    if (pointers.size === 1) { panFrom = [e.clientX, e.clientY]; svg.classList.add("panning"); }
+    else if (pointers.size === 2) { pinchFrom = pinchOf(); }
+  });
+
+  addEventListener("pointermove", e => {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, [e.clientX, e.clientY]);
+    const r = svg.getBoundingClientRect();
+    const sx = W / r.width, sy = H / r.height;
+
+    if (pointers.size >= 2 && pinchFrom) {            // 핀치 = 확대 + 이동
+      const now = pinchOf();
+      tx += (now.mx - pinchFrom.mx) * sx;
+      ty += (now.my - pinchFrom.my) * sy;
+      applyView();
+      if (pinchFrom.d > 0) {
+        const [vx, vy] = toView(now.mx, now.my);
+        zoomAt(now.d / pinchFrom.d, vx, vy);
+      }
+      pinchFrom = now;
+      travel = Infinity;
+      e.preventDefault();
+    } else if (panFrom) {                              // 드래그 = 이동
+      const dx = e.clientX - panFrom[0], dy = e.clientY - panFrom[1];
+      travel += Math.abs(dx) + Math.abs(dy);
+      panFrom = [e.clientX, e.clientY];
+      if (zk > MIN_K) { tx += dx * sx; ty += dy * sy; applyView(); }
+    }
+  }, { passive: false });
+
+  function endPointer(e) {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinchFrom = null;
+    if (pointers.size === 0) { panFrom = null; svg.classList.remove("panning"); }
+    else panFrom = [...pointers.values()][0];
+  }
+  addEventListener("pointerup", endPointer);
+  addEventListener("pointercancel", endPointer);
+
+  applyView();
+
+  if (cyTotal) document.getElementById("map-hint").textContent +=
+    " · 배지는 해당 자치구의 청약 예정 · 접수중 건수";
 
   // ---------- 표 보기 ----------
   const tableBox = document.getElementById("table-view");
@@ -707,7 +905,8 @@
   // ---------- 푸터 ----------
   document.getElementById("footer").innerHTML =
     `자료: ${D.source}${D.statblNm ? " · " + D.statblNm : ""} · 항목: ${D.itemName} · 수집 기간 ${D.weeks[0]} ~ ${weekNow} (${NW}주) · 생성 ${D.generated}
-     <br>변동률은 전주 대비 %, 색 구간: 하락(파랑) ↔ 보합(회색) ↔ 상승(빨강). 빗금은 해당 주 자료가 없는 자치구.`;
+     <br>변동률은 전주 대비 %, 색 구간: 하락(파랑) ↔ 보합(회색) ↔ 상승(빨강). 빗금은 해당 주 자료가 없는 자치구.` +
+    (cyTotal ? `<br>청약: ${esc(CY.source)} · ${esc(CY.asOf)} 기준 ${esc(CY.horizon)} 까지 접수 예정 ${cyTotal}건 · 생성 ${esc(CY.generated)}` : "");
 })();
 </script>
 </body>

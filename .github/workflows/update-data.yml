@@ -1,7 +1,10 @@
-# 한국부동산원 R-ONE 오픈API에서 주간 데이터를 받아 data/ 를 갱신하고 커밋한다.
+# 한국부동산원 R-ONE 오픈API(주간 매매가격지수)와 청약홈 오픈API(분양정보)에서
+# 데이터를 받아 data/ 를 갱신하고 커밋한다.
 # main 에 푸시되면 Vercel 이 자동으로 재배포한다 (Vercel 프로젝트가 이 리포에 연결돼 있어야 함).
 #
-# 필요한 설정: 리포 Settings › Secrets and variables › Actions 에 RONE_API_KEY 등록.
+# 필요한 설정: 리포 Settings › Secrets and variables › Actions 에
+#   RONE_API_KEY      (필수) — 주간 매매가격지수
+#   CHEONGYAK_API_KEY (선택) — 청약 예정 정보. 없으면 청약 표시만 빠진다.
 name: 데이터 갱신
 
 on:
@@ -39,7 +42,20 @@ jobs:
           fi
           python scripts/fetch_data.py
 
+      # 청약홈은 부가 정보라, 키가 없으면 경고만 남기고 매매 데이터 갱신은 그대로 진행한다.
+      - name: 청약 정보 수신
+        env:
+          CHEONGYAK_API_KEY: ${{ secrets.CHEONGYAK_API_KEY }}
+        run: |
+          if [ -z "$CHEONGYAK_API_KEY" ]; then
+            echo "::warning::CHEONGYAK_API_KEY 시크릿이 없어 청약 정보를 건너뜁니다. Settings › Secrets and variables › Actions 에서 등록하세요."
+            exit 0
+          fi
+          python scripts/fetch_cheongyak.py
+
+      # 앞 단계가 실패해도, 이미 받아 둔 변경분은 커밋한다.
       - name: 변경분 커밋
+        if: always()
         run: |
           if git diff --quiet -- data; then
             echo "새 주차 없음 — 커밋할 변경이 없습니다."
