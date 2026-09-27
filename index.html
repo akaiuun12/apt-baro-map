@@ -927,7 +927,7 @@
     tooltip.style.display = "none";
     if (pointers.size === 1) {
       panFrom = [e.clientX, e.clientY];
-      if (zk > MIN_K) svg.classList.add("panning");
+      if (e.pointerType !== "touch" || zk > MIN_K) svg.classList.add("panning");
     } else if (pointers.size === 2) {
       pinchFrom = pinchOf();
     }
@@ -1035,14 +1035,14 @@
   rangeStartInput.min = rangeEndInput.min = D.weeks[0];
   rangeStartInput.max = rangeEndInput.max = weekNow;
   rangeEndInput.value = weekNow;
-  const defaultCustomStart = new Date(weekNow + "T00:00:00");
+  const defaultCustomStart = new Date(weekNow + "T00:00:00Z");
   defaultCustomStart.setFullYear(defaultCustomStart.getFullYear() - 1);
   rangeStartInput.value = defaultCustomStart.toISOString().slice(0, 10);
 
   function rangeBounds() {
     let start = D.weeks[0], end = weekNow;
     if (range === "1y") {
-      const dt = new Date(weekNow + "T00:00:00");
+      const dt = new Date(weekNow + "T00:00:00Z");
       dt.setFullYear(dt.getFullYear() - 1);
       start = dt.toISOString().slice(0, 10);
     } else if (range === "2024") {
