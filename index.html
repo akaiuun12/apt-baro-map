@@ -35,13 +35,26 @@
     color: var(--ink);
     font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
   }
-  .wrap { max-width: 1060px; margin: 0 auto; padding: 28px 20px 48px; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 16px 16px 30px; }
 
-  header h1 { font-size: 30px; font-weight: 850; margin: 0 0 3px; letter-spacing: -0.035em; }
-  header .tagline { margin: 0 0 5px; color: var(--ink-2); font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
-  header .intro { margin: 0 0 7px; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
-  header .sub { color: var(--ink-2); font-size: 13px; margin: 0; line-height: 1.55; }
-  header .sub b { font-weight: 700; color: var(--ink); }
+  header { margin-bottom: 10px; }
+  header .brand-row {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 5px;
+  }
+  header h1 { font-size: 27px; font-weight: 850; margin: 0; letter-spacing: -0.035em; line-height: 1.12; }
+  header .tagline {
+    margin: 0; color: var(--ink-2); font-size: 13px; font-weight: 700; letter-spacing: -0.01em;
+  }
+  header .sub { color: var(--muted); font-size: 11.5px; margin: 0; line-height: 1.6; }
+  header .sub b { font-weight: 700; color: var(--ink-2); }
+  @media (max-width: 640px) {
+    .wrap { padding: 12px 8px 24px; }
+    header { padding: 0 4px; margin-bottom: 8px; }
+    header .brand-row { gap: 7px; margin-bottom: 4px; }
+    header h1 { font-size: 24px; }
+    header .tagline { font-size: 12px; }
+    header .sub { font-size: 10.8px; }
+  }
 
   .sample-note {
     margin: 14px 0 0; padding: 10px 14px; border-radius: 10px;
@@ -49,7 +62,7 @@
   }
   .sample-note code { background: rgba(11,11,11,.06); padding: 1px 5px; border-radius: 4px; }
 
-  .topbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0 12px; }
+  .topbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
   .stat {
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
     padding: 10px 16px; min-width: 130px;
@@ -65,8 +78,12 @@
   .chip .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
 
   .card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-    padding: 18px; position: relative;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px; position: relative;
+  }
+  @media (max-width: 640px) {
+    .card { padding: 9px; border-radius: 12px; }
+    .card-head { gap: 8px; }
   }
   .card + .card { margin-top: 14px; }
   .card-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
@@ -94,11 +111,8 @@
     background: var(--ink); color: #fff; font-weight: 600;
   }
 
-  .map-layout {
-    display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, 300px);
-    gap: 18px; align-items: start; margin-top: 8px;
-  }
-  #map-box { position: relative; min-width: 0; }
+  .map-layout { display: block; margin-top: 6px; }
+  #map-box { position: relative; width: 100%; min-width: 0; }
   #map {
     width: 100%; height: auto; display: block;
     touch-action: pan-y; user-select: none; -webkit-user-select: none;
@@ -126,16 +140,12 @@
   }
   .map-zoom button:hover:not(:disabled) { background: #f2f1ec; }
   .map-zoom button:disabled { opacity: .35; cursor: default; }
-  .map-hint { margin: 5px 2px 0; color: var(--muted); font-size: 11.5px; }
+  .map-hint { margin: 4px 2px 0; color: var(--muted); font-size: 10.8px; }
   .district-panel {
-    min-height: 330px; border-left: 1px solid var(--hairline); padding: 4px 0 4px 18px;
-    position: sticky; top: 16px;
+    margin-top: 10px; padding: 14px 14px 12px;
+    border: 1px solid var(--hairline); border-radius: 12px; background: #f8f8f5;
   }
-  .district-panel-empty {
-    min-height: 300px; display: flex; flex-direction: column; justify-content: center;
-    color: var(--muted); font-size: 12.5px; line-height: 1.65;
-  }
-  .district-panel-empty b { color: var(--ink-2); font-size: 14px; margin-bottom: 3px; }
+  .district-panel[hidden] { display: none; }
   .district-panel .panel-cap {
     color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: .06em;
     text-transform: uppercase; margin-bottom: 6px;
@@ -160,12 +170,9 @@
   .district-panel .tt-cy .tt-flag.on { background: #1f7a4d; color: #fff; }
   .district-panel .tt-cy .tt-more { color: var(--muted); font-size: 10.5px; margin-top: 3px; }
   @media (max-width: 780px) {
-    .map-layout { grid-template-columns: 1fr; gap: 12px; }
-    .district-panel {
-      position: static; min-height: 0; border-left: 0; border-top: 1px solid var(--hairline);
-      padding: 14px 0 0;
-    }
-    .district-panel-empty { min-height: 90px; }
+    .district-panel { margin-top: 8px; padding: 12px 10px 10px; }
+    .map-zoom { top: 5px; right: 5px; }
+    .map-zoom button { width: 30px; height: 30px; }
   }
   .gu-label { pointer-events: none; text-anchor: middle; }
   .gu-label .nm { font-size: 13px; font-weight: 700; }
@@ -223,15 +230,16 @@
   .chart-legend { display: flex; gap: 14px; font-size: 12px; color: var(--ink-2); align-items: center; }
   .chart-legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: 2px; }
 
-  footer { margin-top: 14px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+  footer { margin-top: 10px; color: var(--muted); font-size: 10.8px; line-height: 1.45; text-align: center; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>아파트 바로맵</h1>
-    <p class="tagline">서울 부동산 바로미터 지도</p>
-    <p class="intro">25개 자치구의 주간 매매가격 흐름과 청약 일정을 한눈에 확인하세요.</p>
+    <div class="brand-row">
+      <h1>아파트 바로맵</h1>
+      <p class="tagline">서울 부동산 바로미터 지도</p>
+    </div>
     <p class="sub" id="subtitle"></p>
   </header>
   <div id="sample-banner"></div>
@@ -273,12 +281,7 @@
         </div>
         <p class="map-hint">휠·핀치로 확대하고, 확대 상태에서 드래그해 이동할 수 있습니다.</p>
       </div>
-      <aside id="district-panel" class="district-panel" aria-live="polite">
-        <div class="district-panel-empty">
-          <b>자치구를 선택하세요</b>
-          지도에서 지역을 클릭하면 호버 정보를 이곳에 고정하고, 아래 추이 차트도 함께 바뀝니다.
-        </div>
-      </aside>
+      <aside id="district-panel" class="district-panel" aria-live="polite" hidden></aside>
     </div>
     <div id="table-view"></div>
   </div>
@@ -349,7 +352,7 @@
 
   // ---------- 헤더 ----------
   document.getElementById("subtitle").innerHTML =
-    `<b>${weekNow}</b> 주 기준 · 전주 대비 매매가격지수 변동률 · 출처: ${D.source}`;
+    `<b>주차</b> ${weekNow} · <b>출처</b> ${D.source}`;
   const seoulNow = D.seoul ? D.seoul[NW - 1] : null;
   const stat = document.getElementById("seoul-stat");
   stat.textContent = fmt(seoulNow) + "%";
@@ -598,13 +601,12 @@
 
   function renderDistrictPanel(name) {
     if (!name) {
-      districtPanel.innerHTML = `<div class="district-panel-empty">
-        <b>자치구를 선택하세요</b>
-        지도에서 지역을 클릭하면 호버 정보를 이곳에 고정하고, 아래 추이 차트도 함께 바뀝니다.
-      </div>`;
+      districtPanel.hidden = true;
+      districtPanel.innerHTML = "";
       return;
     }
-    districtPanel.innerHTML = `<div class="panel-cap">선택 자치구 · 고정 정보</div>${districtInfoHtml(name)}`;
+    districtPanel.hidden = false;
+    districtPanel.innerHTML = `<div class="panel-cap">선택 자치구</div>${districtInfoHtml(name)}`;
   }
 
   const pathByGu = {};
@@ -985,9 +987,7 @@
 
   // ---------- 푸터 ----------
   document.getElementById("footer").innerHTML =
-    `자료: ${D.source}${D.statblNm ? " · " + D.statblNm : ""} · 항목: ${D.itemName} · 수집 기간 ${D.weeks[0]} ~ ${weekNow} (${NW}주) · 생성 ${D.generated}
-     <br>변동률은 전주 대비 %, 색 구간: 하락(파랑) ↔ 보합(회색) ↔ 상승(빨강). 빗금은 해당 주 자료가 없는 자치구.` +
-    (cyTotal ? `<br>청약: ${esc(CY.source)} · ${esc(CY.asOf)} 기준 ${esc(CY.horizon)} 까지 접수 예정·접수중 ${cyTotal}건 · 생성 ${esc(CY.generated)}` : "");
+    `한국부동산원 R-ONE · 청약홈 · 전주 대비 변동률 기준`;
 })();
 </script>
 </body>
