@@ -8,12 +8,6 @@
 name: 데이터 갱신
 
 on:
-  # 청약 기능 반영 직후 최신 데이터를 한 번 동기화하기 위한 일시적 push 트리거.
-  # 최초 실행 확인 후 제거한다.
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/update-data.yml"
   schedule:
     # 부동산원 공표는 매주 목요일 정오(KST).
     # GitHub Actions의 정각 혼잡을 피하도록 목 14:17 KST에 받고, 금 10:23 KST에 한 번 더 시도한다.
