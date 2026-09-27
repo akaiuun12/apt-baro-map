@@ -256,11 +256,11 @@
       <div class="de-kpis">
         <div class="de-kpi"><div class="k">세대수</div><div class="v">${apt.households?Number(apt.households).toLocaleString("ko-KR")+"세대":"–"}</div></div>
         <div class="de-kpi"><div class="k">동수</div><div class="v">${apt.dong_count?apt.dong_count+"개동":"–"}</div></div>
-        <div class="de-kpi"><div class="k">사용승인</div><div class="v">${esc(formatDate(apt.approval_date) || apt.build_year || "–")}</div></div>
+        <div class="de-kpi"><div class="k">사용승인</div><div class="v">${esc(apt.approval_date ? formatDate(apt.approval_date) : (apt.build_year || "–"))}</div></div>
         <div class="de-kpi"><div class="k">난방</div><div class="v">${esc(apt.heating || "–")}</div></div>
       </div>
       <p class="de-ranking">대표성 점수 ${Math.round((apt.representative_score||0)*100)} · 최근 12개월 거래 ${apt.trade_count_12m||0}건 · 최근 거래 ${esc(formatDate(apt.latest_trade_date))}</p>
-      <div class="de-section-title"><b>최근 실거래가</b><span>단위: 매매 · 신고가 기준</span></div>
+      <div class="de-section-title"><b>최근 실거래가</b><span>매매 신고 실거래</span></div>
       <div class="de-area-filter">
         <button type="button" data-area="all" aria-pressed="true">전체</button>
         ${areaGroups.slice(0,8).map(x=>`<button type="button" data-area="${x}" aria-pressed="false">약 ${x}㎡</button>`).join("")}
