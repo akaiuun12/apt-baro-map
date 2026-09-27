@@ -111,8 +111,11 @@
     background: var(--ink); color: #fff; font-weight: 600;
   }
 
-  .map-layout { display: block; margin-top: 6px; }
-  #map-box { position: relative; width: 100%; min-width: 0; }
+  .map-layout {
+    --detail-width: 310px;
+    display: block; margin-top: 6px; min-width: 0;
+  }
+  #map-box { position: relative; width: 100%; min-width: 0; overflow: hidden; border-radius: 10px; }
   #map {
     width: 100%; height: auto; display: block;
     touch-action: pan-y; user-select: none; -webkit-user-select: none;
@@ -129,27 +132,47 @@
     stroke-width: calc(1.2px / var(--k, 1));
   }
   .gu.selected { stroke: var(--ink); stroke-width: calc(2px / var(--k, 1)); }
+
   .map-zoom {
-    position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 5px;
-    z-index: 2;
+    position: absolute; z-index: 2; display: flex; gap: 5px;
+    right: 8px; bottom: 8px; flex-direction: row;
   }
   .map-zoom button {
-    width: 32px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px;
-    background: rgba(252,252,251,.94); color: var(--ink); font: inherit; font-size: 16px; line-height: 1;
-    cursor: pointer; box-shadow: 0 1px 4px rgba(11,11,11,.10); backdrop-filter: blur(4px);
+    width: 42px; height: 42px; padding: 0;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: rgba(252,252,251,.94); color: var(--ink);
+    font: inherit; font-size: 18px; line-height: 1; font-weight: 650;
+    cursor: pointer; box-shadow: 0 1px 5px rgba(11,11,11,.12); backdrop-filter: blur(5px);
   }
   .map-zoom button:hover:not(:disabled) { background: #f2f1ec; }
   .map-zoom button:disabled { opacity: .35; cursor: default; }
-  .map-hint { margin: 4px 2px 0; color: var(--muted); font-size: 10.8px; }
+  .map-hint { margin: 5px 2px 0; color: var(--muted); font-size: 10.8px; line-height: 1.45; }
+  .map-hint .desktop-hint { display: none; }
+
   .district-panel {
-    margin-top: 10px; padding: 14px 14px 12px;
-    border: 1px solid var(--hairline); border-radius: 12px; background: #f8f8f5;
+    margin-top: 9px; padding: 13px 12px 11px;
+    border: 1px solid var(--hairline); border-radius: 12px;
+    background: #f8f8f5; overflow: hidden;
   }
-  .district-panel[hidden] { display: none; }
+  .district-panel[data-open="false"] { display: none; }
+  .district-panel[data-open="true"] { display: block; animation: detail-rise .18s ease-out; }
+  @keyframes detail-rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .district-panel-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;
+  }
   .district-panel .panel-cap {
     color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: .06em;
-    text-transform: uppercase; margin-bottom: 6px;
+    text-transform: uppercase; margin: 0;
   }
+  .panel-close {
+    width: 32px; height: 32px; border: 0; border-radius: 8px; padding: 0;
+    background: transparent; color: var(--muted); font: inherit; font-size: 20px;
+    cursor: pointer; line-height: 1;
+  }
+  .panel-close:hover, .panel-close:focus-visible { background: var(--hairline); color: var(--ink); outline: none; }
   .district-panel .tt-name { font-weight: 800; font-size: 18px; margin-bottom: 2px; }
   .district-panel .tt-now { font-size: 26px; font-weight: 850; margin-bottom: 10px; }
   .district-panel table { border-collapse: collapse; width: 100%; font-size: 12px; }
@@ -169,11 +192,66 @@
   }
   .district-panel .tt-cy .tt-flag.on { background: #1f7a4d; color: #fff; }
   .district-panel .tt-cy .tt-more { color: var(--muted); font-size: 10.5px; margin-top: 3px; }
-  @media (max-width: 780px) {
-    .district-panel { margin-top: 8px; padding: 12px 10px 10px; }
-    .map-zoom { top: 5px; right: 5px; }
-    .map-zoom button { width: 30px; height: 30px; }
+
+  /* 모바일: 지도 최대 폭 + 큰 터치 버튼 + 상세정보는 지도 바로 아래 */
+  @media (max-width: 599px) {
+    .map-layout { margin-top: 4px; }
+    #map-box { border-radius: 8px; }
+    .map-zoom { right: 6px; bottom: 6px; gap: 4px; }
+    .map-zoom button { width: 40px; height: 40px; border-radius: 9px; font-size: 17px; }
+    .district-panel { margin-top: 7px; padding: 11px 9px 9px; }
+    .district-panel .tt-name { font-size: 17px; }
+    .district-panel .tt-now { font-size: 23px; }
   }
+
+  /* 태블릿: 지도는 계속 전체 폭, 상세정보는 하단 카드 */
+  @media (min-width: 600px) and (max-width: 1023px) {
+    .map-zoom { right: 9px; bottom: 9px; }
+    .map-zoom button { width: 44px; height: 44px; }
+    .district-panel { margin-top: 10px; padding: 14px 16px 12px; }
+  }
+
+  /* 랩탑/데스크탑: 선택 시 지도 우측으로 상세 패널이 슬라이드 아웃 */
+  @media (min-width: 1024px) {
+    .map-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 0;
+      gap: 0;
+      align-items: stretch;
+      transition: grid-template-columns .22s ease, column-gap .22s ease;
+    }
+    .map-layout.has-selection {
+      grid-template-columns: minmax(0, 1fr) var(--detail-width);
+      column-gap: 14px;
+    }
+    .district-panel,
+    .district-panel[data-open="false"],
+    .district-panel[data-open="true"] {
+      display: block;
+      margin: 0; padding: 14px 0 12px 16px;
+      border: 0; border-left: 1px solid var(--hairline);
+      border-radius: 0; background: transparent;
+      opacity: 0; transform: translateX(18px);
+      pointer-events: none; min-width: 0;
+      transition: opacity .18s ease, transform .22s ease;
+      animation: none;
+    }
+    .map-layout.has-selection .district-panel {
+      opacity: 1; transform: translateX(0); pointer-events: auto;
+    }
+    .map-zoom { top: 8px; right: 8px; bottom: auto; flex-direction: column; }
+    .map-zoom button { width: 34px; height: 34px; border-radius: 8px; font-size: 16px; }
+    .map-hint .touch-hint { display: none; }
+    .map-hint .desktop-hint { display: inline; }
+  }
+
+  /* 큰 데스크탑에서는 정보 패널을 조금 넓게, 전체 콘텐츠 폭도 활용 */
+  @media (min-width: 1440px) {
+    .wrap { max-width: 1320px; }
+    .map-layout { --detail-width: 340px; }
+    .map-layout.has-selection { column-gap: 18px; }
+  }
+
   .gu-label { pointer-events: none; text-anchor: middle; }
   .gu-label .nm { font-size: 13px; font-weight: 700; }
   .gu-label .val { font-size: 11px; font-weight: 500; }
@@ -279,9 +357,12 @@
           <button type="button" id="zoom-out" aria-label="지도 축소" title="축소">－</button>
           <button type="button" id="zoom-reset" aria-label="지도 원래 배율" title="원래 배율">⟲</button>
         </div>
-        <p class="map-hint">휠·핀치로 확대하고, 확대 상태에서 드래그해 이동할 수 있습니다.</p>
+        <p class="map-hint">
+          <span class="touch-hint">핀치 또는 +/−로 확대 · 확대 후 한 손가락으로 이동</span>
+          <span class="desktop-hint">휠 또는 +/−로 확대 · 확대 후 드래그로 이동</span>
+        </p>
       </div>
-      <aside id="district-panel" class="district-panel" aria-live="polite" hidden></aside>
+      <aside id="district-panel" class="district-panel" aria-live="polite" aria-hidden="true" data-open="false"></aside>
     </div>
     <div id="table-view"></div>
   </div>
@@ -421,6 +502,9 @@
 
   const tooltip = document.getElementById("tooltip");
   const districtPanel = document.getElementById("district-panel");
+  const mapLayout = document.getElementById("map-layout");
+  const desktopLayout = matchMedia("(min-width: 1024px)");
+  const finePointer = matchMedia("(hover: hover) and (pointer: fine)");
 
   // ---------- 라벨 배치 ----------
   // 자치구 경계는 오목한 모양이 많아 무게중심(centroid)이 경계 밖이나 경계선 위에
@@ -601,12 +685,29 @@
 
   function renderDistrictPanel(name) {
     if (!name) {
-      districtPanel.hidden = true;
+      districtPanel.dataset.open = "false";
+      districtPanel.setAttribute("aria-hidden", "true");
+      mapLayout.classList.remove("has-selection");
       districtPanel.innerHTML = "";
       return;
     }
-    districtPanel.hidden = false;
-    districtPanel.innerHTML = `<div class="panel-cap">선택 자치구</div>${districtInfoHtml(name)}`;
+
+    districtPanel.innerHTML =
+      `<div class="district-panel-head">
+         <div class="panel-cap">선택 자치구</div>
+         <button type="button" class="panel-close" aria-label="${name} 상세정보 닫기">×</button>
+       </div>${districtInfoHtml(name)}`;
+    districtPanel.dataset.open = "true";
+    districtPanel.setAttribute("aria-hidden", "false");
+    mapLayout.classList.add("has-selection");
+
+    const close = districtPanel.querySelector(".panel-close");
+    if (close) close.onclick = () => selectGu(name);
+
+    // 모바일/태블릿에서는 선택 정보가 지도 아래에 있으므로 필요한 만큼만 자연스럽게 노출한다.
+    if (!desktopLayout.matches) {
+      requestAnimationFrame(() => districtPanel.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+    }
   }
 
   const pathByGu = {};
@@ -626,7 +727,7 @@
     path.setAttribute("fill", bin ? bin.fill : "url(#hatch)");
     path.setAttribute("tabindex", "0");
     path.setAttribute("role", "button");
-    path.setAttribute("aria-label", `${name} ${v == null ? "자료 없음" : fmt(v) + "%"} — 클릭하면 우측 상세 정보와 아래 차트에 고정 표시`);
+    path.setAttribute("aria-label", `${name} ${v == null ? "자료 없음" : fmt(v) + "%"} — 클릭하면 상세 정보와 아래 차트에 고정 표시`);
     gShapes.appendChild(path);
     pathByGu[name] = path;
 
@@ -667,10 +768,13 @@
       tooltip.style.left = x + "px"; tooltip.style.top = y + "px";
     };
     const hide = () => { tooltip.style.display = "none"; };
-    path.addEventListener("mouseenter", show);
-    path.addEventListener("mousemove", move);
-    path.addEventListener("mouseleave", hide);
+    if (finePointer.matches) {
+      path.addEventListener("mouseenter", show);
+      path.addEventListener("mousemove", move);
+      path.addEventListener("mouseleave", hide);
+    }
     path.addEventListener("focus", () => {
+      if (!finePointer.matches) return;
       const r = path.getBoundingClientRect();
       show({ clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 });
     });
@@ -729,10 +833,19 @@
   };
 
   svg.addEventListener("wheel", e => {
+    if (!desktopLayout.matches || !finePointer.matches) return;
     e.preventDefault();
     const [vx, vy] = toView(e.clientX, e.clientY);
     zoomAt(Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0022)), vx, vy);
   }, { passive: false });
+
+  svg.addEventListener("dblclick", e => {
+    if (!desktopLayout.matches || !finePointer.matches) return;
+    e.preventDefault();
+    const [vx, vy] = toView(e.clientX, e.clientY);
+    zoomAt(1.6, vx, vy);
+    track("zoom_map", { level: +zk.toFixed(2), input: "double_click" });
+  });
 
   const pointers = new Map();
   let panFrom = null, pinchFrom = null, travel = 0;
@@ -798,6 +911,10 @@
   }
   addEventListener("pointerup", endPointer);
   addEventListener("pointercancel", endPointer);
+  desktopLayout.addEventListener("change", () => {
+    tooltip.style.display = "none";
+    applyView();
+  });
   applyView();
 
   // ---------- 표 보기 ----------
