@@ -1,0 +1,69 @@
+{
+  "source": {
+    "trades": "국토교통부 아파트 매매 실거래가 상세 자료",
+    "complexes": "국토교통부 공동주택 기본 정보제공 서비스(K-APT)"
+  },
+  "generated": "",
+  "region": "강동구",
+  "lawd_cd": "11740",
+  "months": 24,
+  "ranking": {
+    "households": 0.45,
+    "trade_count_12m": 0.35,
+    "recency": 0.2,
+    "note": ""
+  },
+  "stats": {
+    "trade_rows": 0,
+    "trade_complexes": 0,
+    "kapt_complexes": 0,
+    "kapt_matched": 0
+  },
+  "dongs": {
+    "명일동": {
+      "representative": null,
+      "apartments": [],
+      "candidate_count": 0
+    },
+    "고덕동": {
+      "representative": null,
+      "apartments": [],
+      "candidate_count": 0
+    },
+    "상일동": {
+      "representative": null,
+      "apartments": [],
+      "candidate_count": 0
+    },
+    "길동": {
+      "representative": null,
+      "apartments": [],
+      "candidate_count": 0
+    },
+    "둔촌동": {
+      "representative": null,
+      "apartments": [],
+      "candidate_count": 0
+    },
+    "암사동": {
+      "representative": null,
+      "apartments": [],
+      "candidate_count": 0
+    },
+    "성내동": {
+      "representative": null,
+      "apartments": [],
+      "candidate_count": 0
+    },
+    "천호동": {
+      "representative": null,
+      "apartments": [],
+      "candidate_count": 0
+    },
+    "강일동": {
+      "representative": null,
+      "apartments": [],
+      "candidate_count": 0
+    }
+  }
+}
