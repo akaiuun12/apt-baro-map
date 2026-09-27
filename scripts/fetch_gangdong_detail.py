@@ -220,16 +220,16 @@ def fetch_trades(key, months):
     for ym in month_keys(months):
         blob = request_bytes(TRADE_URL, {
             "serviceKey": key, "LAWD_CD": LAWD_CD, "DEAL_YMD": ym,
-            "pageNo": 1, "numOfRows": 9999,
+            "pageNo": 1, "numOfRows": 1000,
         })
         rows, total = response_items(blob)
         if total > len(rows):
-            # 보통 강동구 한 달은 9999건 미만이지만, 안전하게 페이지를 더 읽는다.
+            # 공공데이터 게이트웨이의 대용량 응답 지연을 피하기 위해 1000건씩 페이지를 읽는다.
             page = 2
             while len(rows) < total:
                 more, _ = response_items(request_bytes(TRADE_URL, {
                     "serviceKey": key, "LAWD_CD": LAWD_CD, "DEAL_YMD": ym,
-                    "pageNo": page, "numOfRows": 9999,
+                    "pageNo": page, "numOfRows": 1000,
                 }))
                 if not more:
                     break
