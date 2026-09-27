@@ -478,9 +478,12 @@
     const list = cyOf(g);
     if (!list.length) return "";
     const md = d => (d ? esc(d).slice(5).replace("-", ".") : "–");
-    const rows = list.slice(0, 3).map(c => `
+    const rows = list.slice(0, 3).map(c => {
+      const status = c.begin && c.begin <= cyToday && (!c.end || cyToday <= c.end) ? "접수중" : "예정";
+      return `
       <tr><td>${esc(c.name)}<span class="tt-sub">${esc(c.kind)}${c.households ? " · " + esc(c.households) + "세대" : ""}</span></td>
-          <td>${md(c.begin)}~${md(c.end)}<span class="tt-flag${c.status === "접수중" ? " on" : ""}">${esc(c.status)}</span></td></tr>`).join("");
+          <td>${md(c.begin)}~${md(c.end)}<span class="tt-flag${status === "접수중" ? " on" : ""}">${status}</span></td></tr>`;
+    }).join("");
     const more = list.length > 3 ? `<div class="tt-more">외 ${list.length - 3}건</div>` : "";
     return `<div class="tt-cy"><div class="tt-cy-cap">청약 예정 · 접수중 ${list.length}건</div>
       <table>${rows}</table>${more}</div>`;
