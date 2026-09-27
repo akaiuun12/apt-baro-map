@@ -148,6 +148,8 @@
   .map-zoom button:disabled { opacity: .35; cursor: default; }
   .map-hint { margin: 5px 2px 0; color: var(--muted); font-size: 10.8px; line-height: 1.45; }
   .map-hint .desktop-hint { display: none; }
+  #location-status:not(:empty)::before { content: " · "; }
+  .location-marker { pointer-events: none; }
 
   .district-panel {
     margin-top: 9px; padding: 13px 12px 11px;
@@ -173,8 +175,14 @@
     cursor: pointer; line-height: 1;
   }
   .panel-close:hover, .panel-close:focus-visible { background: var(--hairline); color: var(--ink); outline: none; }
+  .district-panel .district-summary {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+    margin-bottom: 8px;
+  }
+  .district-panel .district-summary-main { min-width: 82px; flex: 1 1 auto; }
   .district-panel .tt-name { font-weight: 800; font-size: 18px; margin-bottom: 2px; }
-  .district-panel .tt-now { font-size: 26px; font-weight: 850; margin-bottom: 10px; }
+  .district-panel .tt-now { font-size: 26px; font-weight: 850; margin-bottom: 0; }
+  .district-panel .district-summary .tt-spark { flex: 0 0 auto; margin: 0; }
   .district-panel table { border-collapse: collapse; width: 100%; font-size: 12px; }
   .district-panel td { padding: 2px 0; color: var(--ink-2); font-variant-numeric: tabular-nums; }
   .district-panel td:last-child { text-align: right; color: var(--ink); }
@@ -290,7 +298,10 @@
   }
   #table-view th:first-child, #table-view td:first-child { text-align: left; }
   #table-view td { padding: 7px 10px; border-bottom: 1px solid var(--hairline); text-align: right; font-variant-numeric: tabular-nums; }
-  #table-view td.swatch-cell { text-align: left; white-space: nowrap; }
+  #table-view td.swatch-cell { text-align: left; white-space: nowrap; color: var(--ink); }
+  .trend-up { color: var(--up-strong); font-weight: 700; }
+  .trend-down { color: var(--down-strong); font-weight: 700; }
+  .trend-flat { color: var(--muted); font-weight: 600; }
   #table-view .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; border: 1px solid rgba(11,11,11,.08); }
 
   #chart-box { margin-top: 10px; position: relative; }
@@ -307,6 +318,27 @@
   #chart-tip .r .lg i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
   .chart-legend { display: flex; gap: 14px; font-size: 12px; color: var(--ink-2); align-items: center; }
   .chart-legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: 2px; }
+  .range-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .custom-range {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    font-size: 11px; color: var(--muted);
+  }
+  .custom-range[hidden] { display: none; }
+  .custom-range label { display: flex; align-items: center; gap: 4px; }
+  .custom-range input {
+    border: 1px solid var(--border); border-radius: 7px; background: var(--surface);
+    color: var(--ink-2); font: inherit; font-size: 11.5px; padding: 5px 6px;
+  }
+  .custom-range button {
+    border: 1px solid var(--border); border-radius: 7px; background: var(--ink);
+    color: #fff; font: inherit; font-size: 11.5px; padding: 5px 9px; cursor: pointer;
+  }
+  @media (max-width: 640px) {
+    .range-controls { width: 100%; align-items: stretch; }
+    .range-toggle { align-self: flex-start; }
+    .custom-range { justify-content: flex-start; }
+    .custom-range input { max-width: 125px; }
+  }
 
   footer { margin-top: 10px; color: var(--muted); font-size: 10.8px; line-height: 1.45; text-align: center; }
 </style>
@@ -338,10 +370,6 @@
           <div class="legend-cells" id="legend-cells"></div>
           <div class="legend-ticks" id="legend-ticks"></div>
         </div>
-        <div class="legend-missing">
-          <svg width="20" height="12"><rect width="20" height="12" fill="url(#hatch-mini)"></rect></svg>
-          자료 없음
-        </div>
       </div>
       <div class="view-toggle" role="group" aria-label="보기 전환">
         <button type="button" id="btn-map" aria-pressed="true">지도</button>
@@ -356,10 +384,12 @@
           <button type="button" id="zoom-in" aria-label="지도 확대" title="확대">＋</button>
           <button type="button" id="zoom-out" aria-label="지도 축소" title="축소">－</button>
           <button type="button" id="zoom-reset" aria-label="지도 원래 배율" title="원래 배율">⟲</button>
+          <button type="button" id="locate-me" aria-label="현재 위치로 이동" title="내 위치">◎</button>
         </div>
         <p class="map-hint">
-          <span class="touch-hint">핀치 또는 +/−로 확대 · 확대 후 한 손가락으로 이동</span>
-          <span class="desktop-hint">휠 또는 +/−로 확대 · 확대 후 드래그로 이동</span>
+          <span class="touch-hint">좌우 드래그로 이동 · 핀치 또는 +/−로 확대</span>
+          <span class="desktop-hint">드래그로 이동 · 휠 또는 +/−로 확대 · 더블클릭 확대</span>
+          <span id="location-status"></span>
         </p>
       </div>
       <aside id="district-panel" class="district-panel" aria-live="polite" aria-hidden="true" data-open="false"></aside>
@@ -372,10 +402,19 @@
       <div class="card-title">매매가격지수 추이 <span class="hint">지도에서 자치구를 클릭하면 바뀝니다 · 구간 시작 = 100 재기준</span></div>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         <div class="chart-legend" id="chart-legend"></div>
-        <div class="range-toggle" role="group" aria-label="기간 선택" id="range-toggle">
-          <button type="button" data-range="1y">1년</button>
-          <button type="button" data-range="2024" aria-pressed="true">2024~</button>
-          <button type="button" data-range="all">전체</button>
+        <div class="range-controls">
+          <div class="range-toggle" role="group" aria-label="기간 선택" id="range-toggle">
+            <button type="button" data-range="1y">1년</button>
+            <button type="button" data-range="2024" aria-pressed="true">2024~</button>
+            <button type="button" data-range="all">전체</button>
+            <button type="button" id="custom-range-toggle" aria-expanded="false">기간 지정</button>
+          </div>
+          <div class="custom-range" id="custom-range" hidden>
+            <label>시작 <input type="date" id="range-start"></label>
+            <span>~</span>
+            <label>종료 <input type="date" id="range-end"></label>
+            <button type="button" id="apply-range">적용</button>
+          </div>
         </div>
       </div>
     </div>
@@ -497,7 +536,13 @@
   const gView = document.createElementNS(NS, "g");
   const gShapes = document.createElementNS(NS, "g");
   const gLabels = document.createElementNS(NS, "g");
-  gView.appendChild(gShapes); gView.appendChild(gLabels);
+  const gLocation = document.createElementNS(NS, "g");
+  gLocation.setAttribute("class", "location-marker");
+  gLocation.style.display = "none";
+  gLocation.innerHTML =
+    '<circle class="loc-halo" cx="0" cy="0" fill="#ffffff" fill-opacity=".92"></circle>' +
+    '<circle class="loc-dot" cx="0" cy="0" fill="#2563eb"></circle>';
+  gView.appendChild(gShapes); gView.appendChild(gLabels); gView.appendChild(gLocation);
   svg.appendChild(gView);
 
   const tooltip = document.getElementById("tooltip");
@@ -505,6 +550,9 @@
   const mapLayout = document.getElementById("map-layout");
   const desktopLayout = matchMedia("(min-width: 1024px)");
   const finePointer = matchMedia("(hover: hover) and (pointer: fine)");
+  const locateButton = document.getElementById("locate-me");
+  const locationStatus = document.getElementById("location-status");
+  let userLocation = null;
 
   // ---------- 라벨 배치 ----------
   // 자치구 경계는 오목한 모양이 많아 무게중심(centroid)이 경계 밖이나 경계선 위에
@@ -676,14 +724,18 @@
       const bc = val > 0.02 ? "#dd4a41" : val < -0.02 ? "#2a78d6" : "#c3c2b7";
       return `<tr><td>${w}</td><td>${fmt(val)}<span class="tt-bar" style="width:${bw}px;background:${bc}"></span></td></tr>`;
     }).join("");
-    return `<div class="tt-name">${name}</div>
-      <div class="tt-now" style="color:${v > 0.02 ? "var(--up-strong)" : v < -0.02 ? "var(--down-strong)" : "var(--ink)"}">${v == null ? "자료 없음" : fmt(v) + "%"}</div>
-      ${sparkline(name)}
+    return `<div class="district-summary">
+        <div class="district-summary-main">
+          <div class="tt-name">${name}</div>
+          <div class="tt-now" style="color:${v > 0.02 ? "var(--up-strong)" : v < -0.02 ? "var(--down-strong)" : "var(--ink)"}">${v == null ? "자료 없음" : fmt(v) + "%"}</div>
+        </div>
+        ${sparkline(name)}
+      </div>
       <table>${rows}</table>
       ${cheongyakBlock(name)}`;
   }
 
-  function renderDistrictPanel(name) {
+  function renderDistrictPanel(name, scrollPanel = false) {
     if (!name) {
       districtPanel.dataset.open = "false";
       districtPanel.setAttribute("aria-hidden", "true");
@@ -705,7 +757,7 @@
     if (close) close.onclick = () => selectGu(name);
 
     // 모바일/태블릿에서는 선택 정보가 지도 아래에 있으므로 필요한 만큼만 자연스럽게 노출한다.
-    if (!desktopLayout.matches) {
+    if (!desktopLayout.matches && scrollPanel) {
       requestAnimationFrame(() => districtPanel.scrollIntoView({ behavior: "smooth", block: "nearest" }));
     }
   }
@@ -792,8 +844,12 @@
   const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 
   function applyView() {
-    tx = clamp(tx, W * (1 - zk), 0);
-    ty = clamp(ty, H * (1 - zk), 0);
+    // 1배율에서도 약간 이동 가능하게 두어 패닝 기능을 자연스럽게 발견할 수 있게 한다.
+    // 확대할수록 여백 허용치는 작아져 지도 전체가 화면 밖으로 사라지지 않는다.
+    const padX = W * 0.10 / zk;
+    const padY = H * 0.08 / zk;
+    tx = clamp(tx, W * (1 - zk) - padX, padX);
+    ty = clamp(ty, H * (1 - zk) - padY, padY);
     gView.setAttribute("transform", `translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${zk.toFixed(4)})`);
     svg.style.setProperty("--k", zk.toFixed(4));
     for (const l of labelEls) {
@@ -802,8 +858,16 @@
     }
     const zoomed = zk > MIN_K + 1e-6;
     svg.classList.toggle("pannable", zoomed);
-    zoomOut.disabled = zoomReset.disabled = !zoomed;
+    svg.style.cursor = "grab";
+    zoomOut.disabled = !zoomed;
+    zoomReset.disabled = !zoomed && Math.abs(tx) < 1 && Math.abs(ty) < 1;
     zoomIn.disabled = zk >= MAX_K - 1e-6;
+
+    // 현재 위치 마커 크기는 확대 배율과 무관하게 화면에서 일정하게 유지한다.
+    const halo = gLocation.querySelector(".loc-halo");
+    const dot = gLocation.querySelector(".loc-dot");
+    if (halo) halo.setAttribute("r", (8 / zk).toFixed(2));
+    if (dot) dot.setAttribute("r", (4.5 / zk).toFixed(2));
   }
 
   function toView(clientX, clientY) {
@@ -891,9 +955,19 @@
       const dx = e.clientX - panFrom[0], dy = e.clientY - panFrom[1];
       travel += Math.abs(dx) + Math.abs(dy);
       panFrom = [e.clientX, e.clientY];
-      if (zk > MIN_K) {
-        tx += dx * sx; ty += dy * sy; applyView();
-        e.preventDefault();
+
+      if (e.pointerType === "touch" && zk <= MIN_K + 1e-6) {
+        // 1배율 터치에서는 세로 페이지 스크롤을 살리고, 좌우 패닝만 제공한다.
+        if (Math.abs(dx) > Math.abs(dy)) {
+          tx += dx * sx;
+          applyView();
+          e.preventDefault();
+        }
+      } else {
+        // 마우스/펜 또는 확대 상태에서는 1배율에서도 2차원 패닝.
+        tx += dx * sx; ty += dy * sy;
+        applyView();
+        if (zk > MIN_K || e.pointerType !== "touch") e.preventDefault();
       }
     }
   }, { passive: false });
@@ -922,6 +996,7 @@
   const rowsSorted = allGus
     .map(g => ({ g, v: latest(g), prev: (D.regions[g] || [])[NW - 2] ?? null }))
     .sort((a, b) => (b.v ?? -999) - (a.v ?? -999));
+  const trendClass = v => v == null || Math.abs(v) < 0.005 ? "trend-flat" : v > 0 ? "trend-up" : "trend-down";
   tableBox.innerHTML = `<table>
     <thead><tr><th>자치구</th><th>${weekNow} (%)</th><th>전주 (%)</th><th>전주 대비</th></tr></thead>
     <tbody>${rowsSorted.map(r => {
@@ -930,7 +1005,9 @@
       const arrow = delta == null ? "–" : delta > 0 ? "▲ +" + delta.toFixed(2) : delta < 0 ? "▼ " + Math.abs(delta).toFixed(2) : "―";
       return `<tr>
         <td class="swatch-cell"><span class="sw" style="background:${bin ? bin.fill : "#eceae5"}"></span>${r.g}</td>
-        <td>${fmt(r.v)}</td><td>${fmt(r.prev)}</td><td>${arrow}</td></tr>`;
+        <td><span class="${trendClass(r.v)}">${fmt(r.v)}</span></td>
+        <td><span class="${trendClass(r.prev)}">${fmt(r.prev)}</span></td>
+        <td><span class="${trendClass(delta)}">${arrow}</span></td></tr>`;
     }).join("")}</tbody></table>`;
 
   const btnMap = document.getElementById("btn-map"), btnTable = document.getElementById("btn-table");
@@ -948,40 +1025,91 @@
   const chartTip = document.getElementById("chart-tip");
   let selGu = null;          // null = 서울 전체만
   let range = "2024";
+  let customStart = null, customEnd = null;
+  const customRange = document.getElementById("custom-range");
+  const customRangeToggle = document.getElementById("custom-range-toggle");
+  const rangeStartInput = document.getElementById("range-start");
+  const rangeEndInput = document.getElementById("range-end");
+  const applyRange = document.getElementById("apply-range");
 
-  function rangeStartIdx() {
-    if (range === "all") return 0;
-    let cut;
+  rangeStartInput.min = rangeEndInput.min = D.weeks[0];
+  rangeStartInput.max = rangeEndInput.max = weekNow;
+  rangeEndInput.value = weekNow;
+  const defaultCustomStart = new Date(weekNow + "T00:00:00");
+  defaultCustomStart.setFullYear(defaultCustomStart.getFullYear() - 1);
+  rangeStartInput.value = defaultCustomStart.toISOString().slice(0, 10);
+
+  function rangeBounds() {
+    let start = D.weeks[0], end = weekNow;
     if (range === "1y") {
-      const dt = new Date(D.weeks[NW - 1]); dt.setFullYear(dt.getFullYear() - 1);
-      cut = dt.toISOString().slice(0, 10);
-    } else cut = "2024-01-01";
-    const i = D.weeks.findIndex(w => w >= cut);
-    return i < 0 ? 0 : i;
+      const dt = new Date(weekNow + "T00:00:00");
+      dt.setFullYear(dt.getFullYear() - 1);
+      start = dt.toISOString().slice(0, 10);
+    } else if (range === "2024") {
+      start = "2024-01-01";
+    } else if (range === "custom") {
+      start = customStart || D.weeks[0];
+      end = customEnd || weekNow;
+    }
+    let i0 = D.weeks.findIndex(w => w >= start);
+    if (i0 < 0) i0 = 0;
+    let i1 = D.weeks.findIndex(w => w > end);
+    if (i1 < 0) i1 = NW;
+    if (i1 <= i0) i1 = Math.min(NW, i0 + 1);
+    return [i0, i1];
+  }
+
+  function setSelectedGu(name, { scrollPanel = false, trackEvent = false, updateUrl = true } = {}) {
+    selGu = name || null;
+    Object.entries(pathByGu).forEach(([g, p]) => p.classList.toggle("selected", g === selGu));
+    renderDistrictPanel(selGu, scrollPanel);
+    renderChart();
+    if (updateUrl) history.replaceState(null, "", selGu ? "#" + encodeURIComponent(selGu) : location.pathname);
+    if (selGu && trackEvent) track("select_district", { district: selGu, week: weekNow });
   }
 
   function selectGu(name) {
-    selGu = (selGu === name) ? null : name;
-    Object.entries(pathByGu).forEach(([g, p]) => p.classList.toggle("selected", g === selGu));
-    renderDistrictPanel(selGu);
-    renderChart();
-    history.replaceState(null, "", selGu ? "#" + encodeURIComponent(selGu) : location.pathname);
-    if (selGu) track("select_district", { district: selGu, week: weekNow });
+    setSelectedGu(selGu === name ? null : name, { scrollPanel: true, trackEvent: true });
   }
 
-  document.querySelectorAll("#range-toggle button").forEach(b => {
+  document.querySelectorAll("#range-toggle button[data-range]").forEach(b => {
     b.addEventListener("click", () => {
       range = b.dataset.range;
-      document.querySelectorAll("#range-toggle button").forEach(x =>
+      customRange.hidden = true;
+      customRangeToggle.setAttribute("aria-expanded", "false");
+      customRangeToggle.setAttribute("aria-pressed", "false");
+      document.querySelectorAll("#range-toggle button[data-range]").forEach(x =>
         x.setAttribute("aria-pressed", String(x === b)));
       renderChart();
-      track("change_range", { range: range });
+      track("change_range", { range });
     });
   });
 
+  customRangeToggle.addEventListener("click", () => {
+    const open = customRange.hidden;
+    customRange.hidden = !open;
+    customRangeToggle.setAttribute("aria-expanded", String(open));
+  });
+
+  applyRange.addEventListener("click", () => {
+    let a = rangeStartInput.value, b = rangeEndInput.value;
+    if (!a || !b) return;
+    if (a > b) [a, b] = [b, a];
+    customStart = a; customEnd = b;
+    rangeStartInput.value = a; rangeEndInput.value = b;
+    range = "custom";
+    document.querySelectorAll("#range-toggle button[data-range]").forEach(x =>
+      x.setAttribute("aria-pressed", "false"));
+    customRangeToggle.setAttribute("aria-pressed", "true");
+    customRange.hidden = true;
+    customRangeToggle.setAttribute("aria-expanded", "false");
+    renderChart();
+    track("change_range", { range: "custom", start: a, end: b });
+  });
+
   function renderChart() {
-    const i0 = rangeStartIdx();
-    const weeks = D.weeks.slice(i0);
+    const [i0, i1] = rangeBounds();
+    const weeks = D.weeks.slice(i0, i1);
     const n = weeks.length;
     const CW = 940, CH = 270, L = 46, R = 70, T = 16, B = 28;
     chart.setAttribute("viewBox", `0 0 ${CW} ${CH}`);
@@ -990,7 +1118,7 @@
     function rebased(g) {
       const s = indexSeries(g);
       if (!s) return null;
-      const win = s.slice(i0);
+      const win = s.slice(i0, i1);
       const base = win.find(v => v != null);
       if (base == null) return null;
       return win.map(v => (v == null ? null : v / base * 100));
@@ -1023,12 +1151,13 @@
     // x 눈금 (연/월 경계)
     let lastLab = "";
     for (let i = 0; i < n; i++) {
-      const lab = range === "all" ? weeks[i].slice(0, 4) : weeks[i].slice(0, 7);
+      const yearMode = n > 260;
+      const lab = yearMode ? weeks[i].slice(0, 4) : weeks[i].slice(0, 7);
       if (lab !== lastLab) {
         lastLab = lab;
-        const showEvery = range === "all" ? 1 : (range === "2024" ? 3 : 2); // 라벨 밀도 조절
+        const showEvery = n > 156 ? 6 : n > 78 ? 3 : n > 40 ? 2 : 1;
         const month = +lab.slice(5, 7) || 1;
-        if (range === "all" || (month - 1) % showEvery === 0) {
+        if (yearMode || (month - 1) % showEvery === 0) {
           inner += `<line x1="${X(i).toFixed(1)}" y1="${CH - B}" x2="${X(i).toFixed(1)}" y2="${CH - B + 4}" stroke="#c3c2b7"></line>
             <text x="${X(i).toFixed(1)}" y="${CH - B + 16}" text-anchor="middle" font-size="10.5" fill="#898781">${lab.replace("-", ".")}</text>`;
         }
@@ -1084,23 +1213,83 @@
       xh.setAttribute("visibility", "hidden"); chartTip.style.display = "none";
     });
   }
+  // ---------- 현재 위치 ----------
+  function featureContainsLonLat(f, lon, lat) {
+    const geom = f.geometry || {};
+    const insidePolygon = rings =>
+      Array.isArray(rings) && rings.length &&
+      inRing(lon, lat, rings[0]) &&
+      !rings.slice(1).some(ring => inRing(lon, lat, ring));
+    if (geom.type === "Polygon") return insidePolygon(geom.coordinates);
+    if (geom.type === "MultiPolygon") return geom.coordinates.some(insidePolygon);
+    return false;
+  }
+
+  function districtAt(lon, lat) {
+    const f = GEO.features.find(feature => featureContainsLonLat(feature, lon, lat));
+    return f ? f.properties.SIG_KOR_NM : null;
+  }
+
+  function showUserLocation(lon, lat) {
+    userLocation = { lon, lat };
+    gLocation.setAttribute("transform", `translate(${px(lon).toFixed(1)},${py(lat).toFixed(1)})`);
+    gLocation.style.display = "";
+    applyView();
+  }
+
+  function locateUser({ recenter = false, select = true } = {}) {
+    if (!("geolocation" in navigator)) {
+      locationStatus.textContent = "현재 위치 사용 불가";
+      return;
+    }
+    locationStatus.textContent = "위치 확인 중";
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lon = pos.coords.longitude, lat = pos.coords.latitude;
+      const gu = districtAt(lon, lat);
+      if (!gu) {
+        userLocation = { lon, lat };
+        gLocation.style.display = "none";
+        locationStatus.textContent = "현재 위치: 서울 외";
+        if (select) setSelectedGu(null, { updateUrl: false });
+        return;
+      }
+      showUserLocation(lon, lat);
+      locationStatus.textContent = `현재 위치: ${gu}`;
+      if (recenter) {
+        // 현재 위치가 지도 중앙에 오도록 이동하되 기존 배율은 유지한다.
+        tx = W / 2 - px(lon) * zk;
+        ty = H / 2 - py(lat) * zk;
+        applyView();
+      }
+      if (select) setSelectedGu(gu, { scrollPanel: false, trackEvent: false, updateUrl: false });
+    }, () => {
+      locationStatus.textContent = "위치 권한 없음";
+    }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
+  }
+
+  locateButton.addEventListener("click", () => locateUser({ recenter: true, select: true }));
+
   // URL 해시로 초기 상태 지정: #강남구 또는 #강남구,all
+  const hadExplicitHash = Boolean(location.hash.slice(1));
   (function initFromHash() {
     const raw = decodeURIComponent(location.hash.slice(1));
     if (!raw) { renderDistrictPanel(null); renderChart(); return; }
     const [gu, r] = raw.split(",");
     if (r && ["1y", "2024", "all"].includes(r)) {
       range = r;
-      document.querySelectorAll("#range-toggle button").forEach(x =>
+      document.querySelectorAll("#range-toggle button[data-range]").forEach(x =>
         x.setAttribute("aria-pressed", String(x.dataset.range === r)));
     }
     if (gu && pathByGu[gu]) {
       selGu = gu;
       pathByGu[gu].classList.add("selected");
     }
-    renderDistrictPanel(selGu);
+    renderDistrictPanel(selGu, false);
     renderChart();
   })();
+
+  // 공유 링크의 명시적 지역 선택이 없을 때만 첫 화면에서 현재 위치를 자동 확인한다.
+  if (!hadExplicitHash) locateUser({ recenter: false, select: true });
 
   // ---------- 푸터 ----------
   document.getElementById("footer").innerHTML =
