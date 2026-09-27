@@ -430,6 +430,9 @@
 <script src="data/seoul_geo.js"></script>
 <script src="data/latest.js"></script>
 <script src="data/cheongyak.js"></script>
+<script src="data/dong_geo/gangdong.js"></script>
+<script src="data/gangdong_detail.js"></script>
+<script src="district_detail.js"></script>
 <script>
 (function () {
   const D = window.APT_DATA, GEO = window.SEOUL_GEO;
@@ -1059,17 +1062,26 @@
     return [i0, i1];
   }
 
-  function setSelectedGu(name, { scrollPanel = false, trackEvent = false, updateUrl = true } = {}) {
+  function setSelectedGu(name, { scrollPanel = false, trackEvent = false, updateUrl = true, openDetail = false } = {}) {
     selGu = name || null;
     Object.entries(pathByGu).forEach(([g, p]) => p.classList.toggle("selected", g === selGu));
     renderDistrictPanel(selGu, scrollPanel);
     renderChart();
+
+    if (openDetail && selGu) {
+      window.AptDetail?.openDistrict(selGu);
+    } else {
+      window.AptDetail?.close(false);
+    }
+
     if (updateUrl) history.replaceState(null, "", selGu ? "#" + encodeURIComponent(selGu) : location.pathname);
     if (selGu && trackEvent) track("select_district", { district: selGu, week: weekNow });
   }
 
   function selectGu(name) {
-    setSelectedGu(selGu === name ? null : name, { scrollPanel: true, trackEvent: true });
+    setSelectedGu(selGu === name ? null : name, {
+      scrollPanel: true, trackEvent: true, openDetail: true
+    });
   }
 
   document.querySelectorAll("#range-toggle button[data-range]").forEach(b => {
