@@ -19,11 +19,6 @@ window.GA_MEASUREMENT_ID = "G-JG6V34C6BE"; // 예: "G-XXXXXXXXXX"
 window.addEventListener("DOMContentLoaded", () => {
   const D = window.APT_DATA;
   if (!D || !Array.isArray(D.weeks) || !D.weeks.length) return;
-  const CY = window.CHEONGYAK || { regions: {} };
-  const cyToday = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
-  const cyItems = Object.values(CY.regions || {}).flat().filter(c => !c.end || c.end >= cyToday);
-  const cyTotal = cyItems.length;
-
   const n = D.weeks.length;
   const weekStart = D.weeks[n - 1];
   const weekId = Array.isArray(D.weekIds) ? String(D.weekIds[n - 1] || "") : "";
@@ -66,19 +61,12 @@ window.addEventListener("DOMContentLoaded", () => {
   const subtitle = document.getElementById("subtitle");
   if (subtitle) {
     subtitle.innerHTML =
-      `<b>${weekLabel}</b> · 주간 구간 ${weekStart} ~ ${weekEnd} · R-ONE 기준일 ${weekStart}` +
-      `<br>전주 대비 매매가격지수 변동률 · 사이트 갱신 ${updated} · 출처: ${D.source}`;
+      `<b>주차</b> ${weekLabel} · <b>주차구간</b> ${weekStart} ~ ${weekEnd} · <b>사이트 갱신</b> ${updated}` +
+      `<br><b>출처</b> ${D.source}`;
   }
 
   const footer = document.getElementById("footer");
   if (footer) {
-    const cyLine = cyTotal
-      ? `<br>청약: ${CY.source} · ${CY.asOf} 기준 ${CY.horizon}까지 예정·접수중 ${cyTotal}건 · 청약 데이터 갱신 ${generatedKst(CY.generated)}`
-      : "";
-    footer.innerHTML =
-      `자료: ${D.source}${D.statblNm ? " · " + D.statblNm : ""} · 항목: ${D.itemName}` +
-      ` · 최신 주차 ${weekLabel} (${weekStart} ~ ${weekEnd}) · 사이트 갱신 ${updated}` +
-      `<br>전체 수집 기간 ${D.weeks[0]} ~ ${weekStart} (${n}주) · 변동률은 전주 대비 %, ` +
-      `색 구간: 하락(파랑) ↔ 보합(회색) ↔ 상승(빨강). 빗금은 해당 주 자료가 없는 자치구.` + cyLine;
+    footer.textContent = "한국부동산원 R-ONE · 청약홈 · 매매가격 변동률은 전주 대비 기준";
   }
 });
