@@ -5,6 +5,7 @@
 # 필요한 설정: 리포 Settings › Secrets and variables › Actions 에
 #   RONE_API_KEY      (필수) — 주간 매매가격지수
 #   CHEONGYAK_API_KEY (선택) — 청약 예정 정보. 없으면 청약 표시만 빠진다.
+#   DATA_GO_KR_API_KEY (선택) — 강동구 상세(실거래가/K-APT). 없으면 CHEONGYAK_API_KEY를 재사용한다.
 name: 데이터 갱신
 
 on:
@@ -53,6 +54,19 @@ jobs:
             exit 0
           fi
           python scripts/fetch_cheongyak.py
+
+      # 강동구 파일럿: 법정동별 대표 아파트와 최근 실거래가.
+      # 공공데이터포털 인증키는 공통이지만 실거래가/K-APT 각 서비스 활용신청이 별도로 필요하다.
+      - name: 강동구 상세 아파트 데이터 수신
+        env:
+          DATA_GO_KR_API_KEY: ${{ secrets.DATA_GO_KR_API_KEY }}
+          CHEONGYAK_API_KEY: ${{ secrets.CHEONGYAK_API_KEY }}
+        run: |
+          if [ -z "$DATA_GO_KR_API_KEY" ] && [ -z "$CHEONGYAK_API_KEY" ]; then
+            echo "::warning::공공데이터포털 인증키가 없어 강동구 상세 데이터를 건너뜁니다."
+            exit 0
+          fi
+          python scripts/fetch_gangdong_detail.py --months 24
 
       # 앞 단계가 실패해도, 이미 받아 둔 변경분은 커밋한다.
       - name: 변경분 커밋
