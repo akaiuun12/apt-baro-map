@@ -1,8 +1,8 @@
 {
  "source": "한국부동산원 청약홈 (공공데이터포털 오픈API)",
- "generated": "2026-09-27 08:53",
- "asOf": "2026-09-27",
- "horizon": "2026-12-26",
+ "generated": "2026-10-01 11:38",
+ "asOf": "2026-10-01",
+ "horizon": "2026-12-30",
  "kinds": [
   "APT",
   "무순위·잔여세대"
@@ -23,18 +23,18 @@
     "status": "예정"
    }
   ],
-  "동작구": [
+  "중구": [
    {
-    "name": "아크로 리버스카이(2차)",
+    "name": "충정로역자이르네",
     "kind": "무순위·잔여세대",
     "detail": "무순위",
-    "addr": "서울특별시 동작구 대방동 23-61번지 일대",
-    "households": 3,
-    "notice": "2026-09-23",
-    "begin": "2026-09-28",
-    "end": "2026-09-28",
-    "award": "2026-10-06",
-    "url": "https://www.applyhome.co.kr/ai/aia/selectAPTRemndrLttotPblancDetailView.do?houseManageNo=2026910220&pblancNo=2026910220",
+    "addr": "서울특별시 중구 중림동 157-2번지 일원",
+    "households": 35,
+    "notice": "2026-09-28",
+    "begin": "2026-10-06",
+    "end": "2026-10-06",
+    "award": "2026-10-12",
+    "url": "https://www.applyhome.co.kr/ai/aia/selectAPTRemndrLttotPblancDetailView.do?houseManageNo=2026910251&pblancNo=2026910251",
     "status": "예정"
    }
   ]
