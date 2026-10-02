@@ -1,13 +1,28 @@
 {
  "source": "한국부동산원 청약홈 (공공데이터포털 오픈API)",
- "generated": "2026-10-01 11:38",
- "asOf": "2026-10-01",
- "horizon": "2026-12-30",
+ "generated": "2026-10-02 07:05",
+ "asOf": "2026-10-02",
+ "horizon": "2026-12-31",
  "kinds": [
   "APT",
   "무순위·잔여세대"
  ],
  "regions": {
+  "관악구": [
+   {
+    "name": "신림스카이아파트(20차)",
+    "kind": "무순위·잔여세대",
+    "detail": "무순위",
+    "addr": "서울특별시 관악구 신림로 185(신림동, 신림 스카이 아파트)",
+    "households": 4,
+    "notice": "2026-10-01",
+    "begin": "2026-10-06",
+    "end": "2026-10-06",
+    "award": "2026-10-12",
+    "url": "https://www.applyhome.co.kr/ai/aia/selectAPTRemndrLttotPblancDetailView.do?houseManageNo=2026910250&pblancNo=2026910250",
+    "status": "예정"
+   }
+  ],
   "광진구": [
    {
     "name": "강변역 센트럴 아이파크",
