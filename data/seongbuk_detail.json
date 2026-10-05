@@ -1,0 +1,250 @@
+{
+  "gu": "성북구",
+  "level": "행정동",
+  "generated": "2026-10-05",
+  "source_note": "단지 기본정보: 롯데건설/공개 단지정보 · 실거래: 국토교통부 실거래가 공개자료를 기반으로 한 공개 조회자료",
+  "transaction_as_of": "2026-10-02",
+  "stats": {
+    "apartment_count": 1,
+    "trade_rows": 22
+  },
+  "dongs": {
+    "돈암1동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "돈암2동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "안암동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "보문동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "정릉1동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "정릉2동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "정릉3동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "정릉4동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "길음1동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "길음2동": {
+      "candidate_count": 1,
+      "apartments": [
+        {
+          "name": "롯데캐슬클라시아",
+          "kapt_code": "A10023926",
+          "legal_dong": "길음동",
+          "admin_dong": "길음2동",
+          "dong": "길음2동",
+          "road_address": "서울특별시 성북구 숭인로8길 80",
+          "jibun": "1289",
+          "lat": 37.6085003,
+          "lon": 127.026429,
+          "households": 2029,
+          "dong_count": 19,
+          "floor_range": "지하 6층 ~ 지상 37층",
+          "completion_month": "2022-01",
+          "approval_date": "2022-01-31",
+          "heating": "개별난방 / 도시가스",
+          "trade_count_12m": 61,
+          "latest_trade_date": "2026-09-15",
+          "representative_score": 1,
+          "representative_reason": "2,029세대 대단지 · 길음2동 소재 · 최근 1년 매매 61건",
+          "data_as_of": "2026-10-02",
+          "recent_trades": [
+            {
+              "date": "2026-09-15",
+              "area": 84.98,
+              "amount": 193000,
+              "floor": 26
+            },
+            {
+              "date": "2026-09-15",
+              "area": 59.87,
+              "amount": 154500,
+              "floor": 14
+            },
+            {
+              "date": "2026-09-05",
+              "area": 59.87,
+              "amount": 159000,
+              "floor": 13
+            },
+            {
+              "date": "2026-08-25",
+              "area": 59.78,
+              "amount": 155000,
+              "floor": 12
+            },
+            {
+              "date": "2026-08-08",
+              "area": 59.78,
+              "amount": 150000,
+              "floor": 7
+            },
+            {
+              "date": "2026-07-22",
+              "area": 59.87,
+              "amount": 155000,
+              "floor": 10
+            },
+            {
+              "date": "2026-07-18",
+              "area": 59.78,
+              "amount": 152000,
+              "floor": 6
+            },
+            {
+              "date": "2026-07-13",
+              "area": 59.87,
+              "amount": 152000,
+              "floor": 15
+            },
+            {
+              "date": "2026-07-08",
+              "area": 112.51,
+              "amount": 195000,
+              "floor": 20
+            },
+            {
+              "date": "2026-07-02",
+              "area": 84.98,
+              "amount": 182000,
+              "floor": 9
+            },
+            {
+              "date": "2026-06-27",
+              "area": 112.51,
+              "amount": 215000,
+              "floor": 8
+            },
+            {
+              "date": "2026-06-27",
+              "area": 84.98,
+              "amount": 185000,
+              "floor": 30
+            },
+            {
+              "date": "2026-06-26",
+              "area": 84.98,
+              "amount": 187000,
+              "floor": 17
+            },
+            {
+              "date": "2026-06-25",
+              "area": 84.77,
+              "amount": 188000,
+              "floor": 13
+            },
+            {
+              "date": "2026-06-25",
+              "area": 84.77,
+              "amount": 191000,
+              "floor": 18
+            },
+            {
+              "date": "2026-06-13",
+              "area": 84.77,
+              "amount": 185000,
+              "floor": 9
+            },
+            {
+              "date": "2026-06-03",
+              "area": 59.87,
+              "amount": 152000,
+              "floor": 13
+            },
+            {
+              "date": "2026-05-16",
+              "area": 59.78,
+              "amount": 148000,
+              "floor": 14
+            },
+            {
+              "date": "2026-05-15",
+              "area": 59.78,
+              "amount": 143300,
+              "floor": 3
+            },
+            {
+              "date": "2026-05-13",
+              "area": 59.88,
+              "amount": 151000,
+              "floor": 14
+            },
+            {
+              "date": "2026-02-27",
+              "area": 112.51,
+              "amount": 209000,
+              "floor": 22
+            },
+            {
+              "date": "2026-02-15",
+              "area": 112.51,
+              "amount": 209000,
+              "floor": 7
+            }
+          ]
+        }
+      ]
+    },
+    "월곡1동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "월곡2동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "장위1동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "장위2동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "장위3동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "성북동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "삼선동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "동선동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "종암동": {
+      "candidate_count": 0,
+      "apartments": []
+    },
+    "석관동": {
+      "candidate_count": 0,
+      "apartments": []
+    }
+  }
+}
