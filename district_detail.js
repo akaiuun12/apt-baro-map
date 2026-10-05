@@ -1,11 +1,27 @@
-// 강동구 법정동 → 대표 아파트 → 실거래가 파일럿 UI
+// 자치구 세부동 → 대표 아파트 → 실거래가 탐색 UI
 (function () {
   "use strict";
 
   const NS = "http://www.w3.org/2000/svg";
-  const SUPPORTED = new Set(["강동구"]);
-  const GEO = () => window.GANGDONG_GEO;
-  const DATA = () => window.GANGDONG_DETAIL;
+  const DISTRICTS = {
+    "강동구": {
+      level: "법정동",
+      geo: () => window.GANGDONG_GEO,
+      data: () => window.GANGDONG_DETAIL,
+      nameProp: "EMD_KOR_NM",
+    },
+    "성북구": {
+      level: "행정동",
+      geo: () => window.SEONGBUK_GEO,
+      data: () => window.SEONGBUK_DETAIL,
+      nameProp: "ADM_KOR_NM",
+    },
+  };
+  const SUPPORTED = new Set(Object.keys(DISTRICTS));
+  let currentGu = "강동구";
+  const CFG = () => DISTRICTS[currentGu];
+  const GEO = () => CFG()?.geo?.();
+  const DATA = () => CFG()?.data?.();
 
   const style = document.createElement("style");
   style.textContent = `
@@ -63,6 +79,7 @@
     .de-trades td { padding:6px 5px; text-align:right; border-bottom:1px solid #efeee9; color:var(--ink-2); }
     .de-trades td.price { font-weight:800; color:var(--up-strong); }
     .de-no-data { padding:16px 0; color:var(--muted); font-size:12px; line-height:1.6; }
+    .de-source { margin-top:8px; padding-top:7px; border-top:1px solid var(--hairline); color:var(--muted); font-size:9.5px; line-height:1.45; }
 
     @media (max-width:1023px) {
       .de-grid { grid-template-columns:1fr; gap:10px; }
@@ -89,12 +106,12 @@
   explorer.innerHTML = `
     <div class="de-head">
       <div class="de-breadcrumb"><span>서울</span> <span>›</span> <b id="de-gu">강동구</b></div>
-      <div class="de-head-actions"><span class="de-pill">법정동 · 대표 아파트 파일럿</span><button class="de-close" type="button" aria-label="세부 지도 닫기">×</button></div>
+      <div class="de-head-actions"><span class="de-pill" id="de-level">법정동 · 대표 아파트</span><button class="de-close" type="button" aria-label="세부 지도 닫기">×</button></div>
     </div>
     <div class="de-grid">
       <div class="de-map-wrap">
-        <svg id="dong-map" role="img" aria-label="강동구 법정동별 대표 아파트 지도"></svg>
-        <p class="de-map-note">법정동을 선택하면 대표 단지 후보와 최근 실거래가를 확인할 수 있습니다. 대표 단지는 세대수·최근 12개월 거래량·최근 거래시점을 종합해 선정합니다.</p>
+        <svg id="dong-map" role="img" aria-label="자치구 동별 대표 아파트 지도"></svg>
+        <p class="de-map-note" id="de-map-note">동을 선택하면 대표 단지와 최근 실거래가를 확인할 수 있습니다.</p>
       </div>
       <aside class="de-side" id="de-side" aria-live="polite"></aside>
     </div>
@@ -155,7 +172,7 @@
     const geo = GEO();
     if (!geo?.features?.length) {
       svg.setAttribute("viewBox", "0 0 800 420");
-      svg.innerHTML = '<text x="400" y="210" text-anchor="middle" fill="#898781" font-size="16">법정동 경계 데이터 없음</text>';
+      svg.innerHTML = '<text x="400" y="210" text-anchor="middle" fill="#898781" font-size="16">동 경계 데이터 없음</text>';
       return;
     }
 
@@ -174,7 +191,7 @@
 
     const data = DATA()?.dongs || {};
     geo.features.forEach(f => {
-      const name=f.properties.EMD_KOR_NM;
+      const name=f.properties[CFG().nameProp];
       const d=f.geometry.coordinates.map(ring => "M"+ring.map(([x,y])=>`${px(x).toFixed(1)},${py(y).toFixed(1)}`).join("L")+"Z").join("");
       const path=document.createElementNS(NS,"path");
       path.setAttribute("d",d);
@@ -211,7 +228,7 @@
   function renderSide() {
     if (!selectedDong) {
       const hasData = (DATA()?.stats?.trade_rows || 0) > 0;
-      side.innerHTML = `<div class="de-empty"><b>법정동을 선택하세요</b>${
+      side.innerHTML = `<div class="de-empty"><b>${esc(CFG().level)}을 선택하세요</b>${
         hasData
           ? "지도에서 동을 누르면 대표 아파트와 최근 거래를 확인할 수 있습니다."
           : "지도 구조는 준비되었습니다. 공공데이터 API 권한이 확인되면 대표 아파트와 실거래가가 자동으로 채워집니다."
@@ -222,8 +239,8 @@
     const info=DATA()?.dongs?.[selectedDong] || {apartments:[]};
     const apts=info.apartments||[];
     if (!apts.length) {
-      side.innerHTML=`<div class="de-dong-title"><h3>${esc(selectedDong)}</h3><span>법정동</span></div>
-        <div class="de-no-data">이 동의 대표 아파트 데이터가 아직 생성되지 않았습니다. 실거래가/K-APT API 갱신 후 자동으로 표시됩니다.</div>`;
+      side.innerHTML=`<div class="de-dong-title"><h3>${esc(selectedDong)}</h3><span>${esc(CFG().level)}</span></div>
+        <div class="de-no-data">이 동의 대표 아파트 데이터가 아직 등록되지 않았습니다.</div>`;
       return;
     }
     if (!selectedApartment || !apts.some(a => aptKey(a)===aptKey(selectedApartment))) selectedApartment=apts[0];
@@ -255,17 +272,20 @@
       <div class="de-apt-sub">${esc(apt.road_address || apt.address || (apt.dong+" "+(apt.jibun||"")))}</div>
       <div class="de-kpis">
         <div class="de-kpi"><div class="k">세대수</div><div class="v">${apt.households?Number(apt.households).toLocaleString("ko-KR")+"세대":"–"}</div></div>
-        <div class="de-kpi"><div class="k">동수</div><div class="v">${apt.dong_count?apt.dong_count+"개동":"–"}</div></div>
-        <div class="de-kpi"><div class="k">사용승인</div><div class="v">${esc(apt.approval_date ? formatDate(apt.approval_date) : (apt.build_year || "–"))}</div></div>
+        <div class="de-kpi"><div class="k">동</div><div class="v">${apt.dong_count?apt.dong_count+"개동":"–"}</div></div>
+        <div class="de-kpi"><div class="k">층</div><div class="v">${esc(apt.floor_range || "–")}</div></div>
+        <div class="de-kpi"><div class="k">준공년월</div><div class="v">${esc(apt.completion_month ? apt.completion_month.replace("-", ".") : (apt.approval_date ? formatDate(apt.approval_date).slice(0,7) : (apt.build_year || "–")))}</div></div>
+        <div class="de-kpi"><div class="k">사용승인</div><div class="v">${esc(apt.approval_date ? formatDate(apt.approval_date) : "–")}</div></div>
         <div class="de-kpi"><div class="k">난방</div><div class="v">${esc(apt.heating || "–")}</div></div>
       </div>
-      <p class="de-ranking">대표성 점수 ${Math.round((apt.representative_score||0)*100)} · 최근 12개월 거래 ${apt.trade_count_12m||0}건 · 최근 거래 ${esc(formatDate(apt.latest_trade_date))}</p>
-      <div class="de-section-title"><b>최근 실거래가</b><span>매매 신고 실거래</span></div>
+      <p class="de-ranking">${esc(apt.representative_reason || ("대표성 점수 "+Math.round((apt.representative_score||0)*100)+" · 최근 12개월 거래 "+(apt.trade_count_12m||0)+"건"))} · 최근 거래 ${esc(formatDate(apt.latest_trade_date))}</p>
+      <div class="de-section-title"><b>평형별 최근 실거래가</b><span>매매 신고 실거래</span></div>
       <div class="de-area-filter">
         <button type="button" data-area="all" aria-pressed="true">전체</button>
-        ${areaGroups.slice(0,8).map(x=>`<button type="button" data-area="${x}" aria-pressed="false">약 ${x}㎡</button>`).join("")}
+        ${areaGroups.slice(0,8).map(x=>`<button type="button" data-area="${x}" aria-pressed="false">전용 약 ${x}㎡</button>`).join("")}
       </div>
-      <div class="de-trades"></div>`;
+      <div class="de-trades"></div>
+      <div class="de-source">${esc(DATA()?.source_note || "")}${DATA()?.transaction_as_of ? " · 거래 데이터 "+esc(DATA().transaction_as_of)+" 기준" : ""}</div>`;
 
     const tradesBox=el.querySelector(".de-trades");
     function renderTrades(area) {
@@ -286,8 +306,13 @@
       close(false);
       return false;
     }
+    currentGu=gu;
     explorer.classList.add("open");
     explorer.querySelector("#de-gu").textContent=gu;
+    explorer.querySelector("#de-level").textContent=CFG().level+" · 대표 아파트";
+    explorer.querySelector("#dong-map").setAttribute("aria-label", gu+" "+CFG().level+"별 대표 아파트 지도");
+    explorer.querySelector("#de-map-note").textContent=
+      CFG().level+"을 선택하면 대표 단지와 최근 실거래가를 확인할 수 있습니다.";
     selectedDong=null;
     selectedApartment=null;
     drawDongMap();
