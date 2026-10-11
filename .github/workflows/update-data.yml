@@ -15,6 +15,15 @@ on:
     - cron: "17 5 * * 4"
     - cron: "23 1 * * 5"
   workflow_dispatch: # 수동 실행
+    inputs:
+      detail_districts:
+        description: "행정동 대표 단지를 생성할 자치구 (공백 구분). 비우면 기본값 사용"
+        required: false
+        default: ""
+      detail_probe:
+        description: "true 면 쓰기 없이 API 가용성만 점검"
+        required: false
+        default: "false"
 
 permissions:
   contents: write
@@ -68,6 +77,27 @@ jobs:
             exit 0
           fi
           python scripts/fetch_gangdong_detail.py --months 24
+
+      # 행정동 대표 단지: 실거래 + K-APT + 지오코딩. 부가 정보라 실패해도 통과시킨다.
+      - name: 행정동 대표 단지 데이터 수신
+        continue-on-error: true
+        env:
+          DATA_GO_KR_API_KEY: ${{ secrets.DATA_GO_KR_API_KEY }}
+          CHEONGYAK_API_KEY: ${{ secrets.CHEONGYAK_API_KEY }}
+          VWORLD_API_KEY: ${{ secrets.VWORLD_API_KEY }}
+          JUSO_API_KEY: ${{ secrets.JUSO_API_KEY }}
+          DISTRICTS: ${{ inputs.detail_districts }}
+          PROBE: ${{ inputs.detail_probe }}
+        run: |
+          if [ -z "$DATA_GO_KR_API_KEY" ] && [ -z "$CHEONGYAK_API_KEY" ]; then
+            echo "::warning::공공데이터포털 인증키가 없어 행정동 대표 단지 생성을 건너뜁니다."
+            exit 0
+          fi
+          if [ "$PROBE" = "true" ]; then
+            python scripts/fetch_district_detail.py --probe
+            exit 0
+          fi
+          python scripts/fetch_district_detail.py --months 12 ${DISTRICTS:-마포구 은평구 서대문구}
 
       # 앞 단계가 실패해도, 이미 받아 둔 변경분은 커밋한다.
       - name: 변경분 커밋

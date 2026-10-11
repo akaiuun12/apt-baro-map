@@ -11,11 +11,12 @@
     "강서구":"11500","구로구":"11530","금천구":"11545","영등포구":"11560","동작구":"11590",
     "관악구":"11620","서초구":"11650","강남구":"11680","송파구":"11710","강동구":"11740",
   };
-  // 행정동 단위 대표 단지 데이터가 있는 자치구. level 이 "행정동" 인 데이터만 지도와 연결한다.
+  // 행정동 단위 대표 단지 데이터가 있는 자치구 → data/{slug}_detail.js 의 전역변수명.
+  // 파일 하나가 수십 KB라 전부 선행 로드하지 않고, 경계와 마찬가지로 클릭 시점에 지연 로드한다.
   const DETAIL_SOURCES = {
-    "성북구": () => window.SEONGBUK_DETAIL,
-    "강동구": () => window.GANGDONG_DETAIL,
+    "성북구": "SEONGBUK", "마포구": "MAPO", "은평구": "EUNPYEONG", "서대문구": "SEODAEMUN",
   };
+  const detailPromises = {};
   const SUPPORTED = new Set(Object.keys(GU_CODES));
   const NAME_PROP = "ADM_KOR_NM";
   const LEVEL = "행정동";
@@ -23,10 +24,30 @@
   let loadToken = 0;
   const geoPromises = {};
   const GEO = () => window.DONG_GEO?.[currentGu];
-  const DATA = () => {
-    const d = DETAIL_SOURCES[currentGu]?.();
+  const detailOf = gu => {
+    const slug = DETAIL_SOURCES[gu];
+    const d = slug && window[slug + "_DETAIL"];
     return d && d.level === LEVEL ? d : null;
   };
+  const DATA = () => detailOf(currentGu);
+
+  function loadDetail(gu) {
+    const slug = DETAIL_SOURCES[gu];
+    if (!slug) return Promise.resolve(null);
+    if (window[slug + "_DETAIL"]) return Promise.resolve(detailOf(gu));
+    if (!detailPromises[gu]) {
+      detailPromises[gu] = new Promise(resolve => {
+        const sc = document.createElement("script");
+        sc.src = `data/${slug.toLowerCase()}_detail.js`;
+        sc.async = true;
+        sc.onload = () => resolve(detailOf(gu));
+        // 대표 단지 데이터가 없어도 경계 지도는 그대로 보여 준다.
+        sc.onerror = () => { delete detailPromises[gu]; resolve(null); };
+        document.head.appendChild(sc);
+      });
+    }
+    return detailPromises[gu];
+  }
 
   function loadGeo(gu) {
     if (window.DONG_GEO?.[gu]) return Promise.resolve(window.DONG_GEO[gu]);
@@ -358,16 +379,12 @@
     }
     currentGu=gu;
     const token=++loadToken;
-    const hasData=!!DATA();
     explorer.classList.add("open");
     explorer.querySelector("#de-gu").textContent=gu;
-    explorer.querySelector("#de-level").textContent=LEVEL+(hasData?" · 대표 단지":" 지도");
     explorer.querySelector("#dong-map").setAttribute("aria-label", gu+" "+LEVEL+" 지도");
-    explorer.querySelector("#de-map-note").textContent= hasData
-      ? LEVEL+"을 선택하면 대표 단지와 최근 매매 실거래가를 확인할 수 있습니다."
-      : gu+" "+LEVEL+" 경계 지도입니다. 대표 단지 데이터는 순차적으로 추가됩니다.";
     selectedDong=null;
     selectedApartment=null;
+    syncDetailHeader();
     renderSide();
     if (GEO()) {
       drawDongMap();
@@ -379,7 +396,21 @@
         if (token===loadToken) drawDongMap("행정동 경계를 불러오지 못했습니다");
       });
     }
+    // 대표 단지 데이터는 경계와 별개로 받아, 도착하면 지도와 안내문을 다시 그린다.
+    loadDetail(gu).then(() => {
+      if (token!==loadToken || currentGu!==gu) return;
+      syncDetailHeader();
+      if (GEO()) drawDongMap();
+    });
     return true;
+  }
+
+  function syncDetailHeader() {
+    const hasData=!!DATA();
+    explorer.querySelector("#de-level").textContent=LEVEL+(hasData?" · 대표 단지":" 지도");
+    explorer.querySelector("#de-map-note").textContent= hasData
+      ? LEVEL+"을 선택하면 대표 단지와 최근 매매 실거래가를 확인할 수 있습니다."
+      : currentGu+" "+LEVEL+" 경계 지도입니다. 대표 단지 데이터는 순차적으로 추가됩니다.";
   }
 
   function close(scroll=false) {
