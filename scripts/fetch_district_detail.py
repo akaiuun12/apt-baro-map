@@ -344,14 +344,17 @@ def rank_into_dongs(complexes, dong_order, as_of):
         if not pool:
             info["apartments"] = []
             continue
-        max_h = max(c["households"] or 0 for c in pool) or 1
+        max_h = max(c["households"] or 0 for c in pool)
         max_t = max(c["trade_count_12m"] for c in pool) or 1
+        # K-APT 권한이 없으면 세대수가 비어 있다. 그때는 남은 두 신호로 가중치를 다시 나눈다.
+        w_h = W_HOUSEHOLDS if max_h else 0.0
+        scale = 1.0 if w_h else 1 / (W_TRADES + W_RECENCY)
         for c in pool:
             days = max(0, (as_of - dt.date.fromisoformat(c["latest_trade_date"])).days)
             c["representative_score"] = round(
-                W_HOUSEHOLDS * (c["households"] or 0) / max_h
-                + W_TRADES * c["trade_count_12m"] / max_t
-                + W_RECENCY * max(0.0, 1 - days / 365), 3)
+                w_h * (c["households"] or 0) / (max_h or 1)
+                + scale * W_TRADES * c["trade_count_12m"] / max_t
+                + scale * W_RECENCY * max(0.0, 1 - days / 365), 3)
         pool.sort(key=lambda c: -c["representative_score"])
         picked = []
         for i, c in enumerate(pool[:TOP_N]):
@@ -367,8 +370,20 @@ def rank_into_dongs(complexes, dong_order, as_of):
     return dongs
 
 
+def ranking_note(dongs):
+    """세대수를 하나도 못 받았으면 가중치 표기를 실제 사용분에 맞춘다."""
+    has_hh = any(a.get("households") for v in dongs.values() for a in v["apartments"])
+    base = f"행정동 내 최댓값 대비 정규화, 전용 {MIN_MEDIAN_AREA:.0f}㎡ 미만 위주 단지 제외"
+    if has_hh:
+        return {"households": W_HOUSEHOLDS, "trade_count_12m": W_TRADES,
+                "recency": W_RECENCY, "note": base}
+    total = W_TRADES + W_RECENCY
+    return {"households": 0, "trade_count_12m": round(W_TRADES / total, 2),
+            "recency": round(W_RECENCY / total, 2),
+            "note": base + " · K-APT 세대수를 받지 못해 거래량·최근성만 사용"}
+
+
 def write_payload(gu, slug, payload):
-    var = re.sub(r"[^A-Z]", "", slug.upper()) or slug.upper()
     var = slug.upper() + "_DETAIL"
     (DATA_DIR / f"{slug}_detail.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -422,8 +437,7 @@ def build_district(gu, key, months, backends, cache, as_of, geocode_limit):
         "source_note": ("실거래: 국토교통부 아파트 매매 실거래가 상세자료(해제건 제외) · "
                         "단지정보: K-APT · 행정동 배정: 단지 좌표 point-in-polygon"),
         "transaction_as_of": as_of.isoformat(),
-        "ranking": {"households": W_HOUSEHOLDS, "trade_count_12m": W_TRADES, "recency": W_RECENCY,
-                    "note": f"행정동 내 최댓값 대비 정규화, 전용 {MIN_MEDIAN_AREA:.0f}㎡ 미만 위주 단지 제외"},
+        "ranking": ranking_note(dongs),
         "stats": {
             "apartment_count": sum(len(v["apartments"]) for v in dongs.values()),
             "trade_rows": len(trades),

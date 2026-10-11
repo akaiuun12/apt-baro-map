@@ -99,6 +99,41 @@ python scripts/fetch_data.py
 DATA_GO_KR_API_KEY=... python scripts/fetch_gangdong_detail.py --months 24
 ```
 
+## 행정동별 대표 단지
+
+자치구를 클릭하면 행정동 경계 지도가 열리고, 대표 단지 데이터가 있는 구는
+동을 선택해 대표 단지와 최근 매매 실거래가를 볼 수 있습니다.
+상세 데이터는 파일당 수십 KB라 구를 열 때 지연 로드합니다.
+
+| 구 | 생성 방식 |
+|---|---|
+| 성북구 | `scripts/build_seongbuk_detail.py` — 좌표·세대수를 손으로 채운 표 + 수기 실거래 추출본 |
+| 그 외 | `scripts/fetch_district_detail.py` — 공개 API만으로 생성 |
+
+```
+python scripts/fetch_district_detail.py --probe              # API 가용성 점검 (쓰기 없음)
+python scripts/fetch_district_detail.py 마포구 은평구 서대문구
+python scripts/fetch_district_detail.py --all --months 12
+```
+
+동작: 실거래가 API로 단지별 거래를 모으고, K-APT로 세대수·사용승인일을 붙인 뒤,
+단지 주소를 지오코딩해 `data/dong_geo/{시군구코드}.js` 경계에 point-in-polygon 으로
+행정동을 배정합니다. 대표 단지는 세대수 45% + 최근 12개월 거래량 35% + 최근 거래시점 20%
+로 동별 상위 3곳을 고릅니다. 좌표는 `data/sources/apt_coords.json` 에 캐시되며,
+값을 직접 고쳐 넣어 특정 단지의 좌표를 고정할 수도 있습니다.
+
+필요한 키 (리포 Settings › Secrets and variables › Actions):
+
+| 시크릿 | 용도 | 없을 때 |
+|---|---|---|
+| `DATA_GO_KR_API_KEY` | 실거래가 · K-APT | 생성 불가 (해당 구는 경계 지도만) |
+| `VWORLD_API_KEY` | [VWorld](https://www.vworld.kr/dev/v4api.do) 지오코더 | 행정동 배정 불가 |
+| `JUSO_API_KEY` | [도로명주소 좌표제공](https://business.juso.go.kr) | VWorld 로 대체 가능 |
+
+공공데이터포털 인증키는 하나지만 **서비스마다 별도 활용신청**이 필요합니다.
+실거래가 권한이 없으면 403 `SERVICE_KEY_IS_NOT_REGISTERED_ERROR` 가 납니다.
+K-APT 권한이 없으면 세대수 없이 거래량·최근성만으로 대표 단지를 고릅니다.
+
 ## 배포 (Vercel)
 
 빌드가 없는 정적 사이트라 리포 루트가 그대로 서빙됩니다. `main` 에 푸시하면
