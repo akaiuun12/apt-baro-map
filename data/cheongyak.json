@@ -1,11 +1,27 @@
 {
  "source": "한국부동산원 청약홈 (공공데이터포털 오픈API)",
- "generated": "2026-10-09 07:30",
- "asOf": "2026-10-09",
- "horizon": "2027-01-07",
+ "generated": "2026-10-15 09:58",
+ "asOf": "2026-10-15",
+ "horizon": "2027-01-13",
  "kinds": [
   "APT",
   "무순위·잔여세대"
  ],
- "regions": {}
+ "regions": {
+  "중구": [
+   {
+    "name": "청계 노르웨이숲(13차)",
+    "kind": "무순위·잔여세대",
+    "detail": "무순위",
+    "addr": "서울특별시 중구 황학동 1756번지 일원",
+    "households": 10,
+    "notice": "2026-10-12",
+    "begin": "2026-10-19",
+    "end": "2026-10-19",
+    "award": "2026-10-22",
+    "url": "https://www.applyhome.co.kr/ai/aia/selectAPTRemndrLttotPblancDetailView.do?houseManageNo=2026910263&pblancNo=2026910263",
+    "status": "예정"
+   }
+  ]
+ }
 }
