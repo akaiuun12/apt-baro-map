@@ -1,8 +1,8 @@
 {
  "source": "한국부동산원 청약홈 (공공데이터포털 오픈API)",
- "generated": "2026-10-22 10:14",
- "asOf": "2026-10-22",
- "horizon": "2027-01-20",
+ "generated": "2026-10-23 06:06",
+ "asOf": "2026-10-23",
+ "horizon": "2027-01-21",
  "kinds": [
   "APT",
   "무순위·잔여세대"
@@ -20,6 +20,21 @@
     "end": "2026-11-06",
     "award": "2026-11-26",
     "url": "https://www.applyhome.co.kr/ai/aia/selectAPTLttotPblancDetail.do?houseManageNo=2026000373&pblancNo=2026000373",
+    "status": "예정"
+   }
+  ],
+  "중구": [
+   {
+    "name": "충정로역자이르네(2차)",
+    "kind": "무순위·잔여세대",
+    "detail": "무순위",
+    "addr": "서울특별시 중구 중림동 157-2번지 일원",
+    "households": 9,
+    "notice": "2026-10-22",
+    "begin": "2026-10-27",
+    "end": "2026-10-27",
+    "award": "2026-11-02",
+    "url": "https://www.applyhome.co.kr/ai/aia/selectAPTRemndrLttotPblancDetailView.do?houseManageNo=2026910270&pblancNo=2026910270",
     "status": "예정"
    }
   ]
