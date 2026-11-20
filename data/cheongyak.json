@@ -1,8 +1,8 @@
 {
  "source": "한국부동산원 청약홈 (공공데이터포털 오픈API)",
- "generated": "2026-11-19 14:27",
- "asOf": "2026-11-19",
- "horizon": "2027-02-17",
+ "generated": "2026-11-20 08:41",
+ "asOf": "2026-11-20",
+ "horizon": "2027-02-18",
  "kinds": [
   "APT",
   "무순위·잔여세대"
@@ -51,21 +51,6 @@
     "award": "2026-12-04",
     "url": "https://www.applyhome.co.kr/ai/aia/selectAPTLttotPblancDetail.do?houseManageNo=2026000505&pblancNo=2026000505",
     "status": "예정"
-   }
-  ],
-  "중랑구": [
-   {
-    "name": "중화역 라온프라이빗 센트로",
-    "kind": "APT",
-    "detail": "민영",
-    "addr": "서울특별시 중랑구 중화동 303-9번지 일원",
-    "households": 113,
-    "notice": "2026-11-06",
-    "begin": "2026-11-16",
-    "end": "2026-11-19",
-    "award": "2026-11-25",
-    "url": "https://www.applyhome.co.kr/ai/aia/selectAPTLttotPblancDetail.do?houseManageNo=2026000497&pblancNo=2026000497",
-    "status": "접수중"
    }
   ]
  }
